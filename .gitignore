@@ -1,0 +1,20 @@
+# git ignore for agents
+
+# OSX specific
+**.DS_Store
+
+# python specific
+**/__pycache__
+__pychache__
+
+# generally unpleasant
+**/*.log
+
+# idea folder
+**/.idea
+
+
+# File-based project format
+**.iws
+
+
