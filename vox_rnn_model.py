@@ -1,10 +1,11 @@
 import sys
 import yaml
 from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import CuDNNLSTM, LSTM, Bidirectional, Dropout, Dense
+from tensorflow.keras.layers import CuDNNLSTM, Bidirectional, Dropout, Dense
 from tensorflow.keras.optimizers import Adam
 
-from VoxRnn.pairwise_kl_divergence import pairwise_kl_divergence
+from pairwise_kl_divergence import pairwise_kl_divergence
+from vox_utils import get_data
 
 
 def create_input_layer(frequency: int, time: int) -> Input:
@@ -73,18 +74,10 @@ def build_embedding_train_model(frequency: int, time: int) -> Model:
     return model
 
 
-def get_data() -> tuple:
-    """
-    returns tuple of numpy arrays containing respective data
-    :return: train_x, train_y, validate_x, validate_y
-    """
-    pass
-
-
-def train_model():
+def train_model(model: Model):
     train_x, train_y, validate_x, validate_y = get_data()
 
 
 if __name__ == "__main__":
     model = build_embedding_train_model(40, 128)
-    print(model)
+    train_model(model)
