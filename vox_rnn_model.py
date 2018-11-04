@@ -78,7 +78,8 @@ def build_embedding_train_model(frequency: int, units: int) -> Model:
 
 
 def train_model(model: Model):
-    train_x, train_y, validate_x, validate_y = get_datasets()
+    # ToDo: implement stanford streaming
+    pass
 
 
 if __name__ == "__main__":
