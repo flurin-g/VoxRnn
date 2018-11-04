@@ -5,7 +5,7 @@ from tensorflow.keras.layers import CuDNNLSTM, Bidirectional, Dropout, Dense
 from tensorflow.keras.optimizers import Adam
 
 from pairwise_kl_divergence import pairwise_kl_divergence
-from vox_utils import get_data
+from vox_utils import get_datasets
 
 
 def create_input_layer(frequency: int, time: int) -> Input:
@@ -32,41 +32,44 @@ def build_optimizer(configs: dict):
     return optimizer
 
 
-def build_embedding_train_model(frequency: int, time: int) -> Model:
+def build_embedding_train_model(frequency: int, units: int) -> Model:
     """
+    Builds the model used to train on data, result: weights which can be loaded
+    in a modified model to extract embeddings from a given utterance
+
+    A spectrogram is the input and each discrete time-step is fed to one unit
+
     uses the CuDNNLSTM-Layer for optimized performance on GPU's.
-    A spectrogram is the input of one unit: total input = units x spectrogram
 
     :param frequency: number of frequency bins of mel-spectrogram
-    :param time: number of discrete time-intervals of mel-spectrogram
+    :param units: each unit is one discrete time step in the spectrogram, 10 ms = 1 step
     :return: keras model for training
-
     """
     configs = load_config()
     print(configs)
     num_speakers = configs['input_data']['num_speakers']
 
-    X_input = create_input_layer(frequency, time)
+    X_input = create_input_layer(frequency, units)
 
-    X = Bidirectional(CuDNNLSTM(configs['blstm1']['units'],
+    layer1 = Bidirectional(CuDNNLSTM(configs['blstm1']['units'],
                            return_sequences=True))(X_input)
 
-    X = Dropout(configs['dropout1'])(X)
+    layer2 = Dropout(configs['dropout1'])(layer1)
 
-    X = Bidirectional(CuDNNLSTM(configs['blstm1']['units']))(X)
+    layer3 = Bidirectional(CuDNNLSTM(configs['blstm1']['units']))(layer2)
 
     num_units = num_speakers * configs['dense1']['scaling']
-    X = Dense(num_units)(X)
+    layer4 = Dense(num_units)(layer3)
 
-    X = Dropout(configs['dropout2'])(X)
+    layer5 = Dropout(configs['dropout2'])(layer4)
 
     num_units = num_speakers * configs['dense2']['scaling']
-    X = Dense(num_units)(X)
+    layer6 = Dense(num_units)(layer5)
 
     num_units = num_speakers
-    X = Dense(num_units)(X)
+    layer7 = Dense(num_units)(layer6)
 
-    model = Model(inputs=X_input, outputs=X, name='ResNet20')
+    model = Model(inputs=X_input, outputs=layer7, name='ResNet20')
 
     model.compile(loss=pairwise_kl_divergence,
                   optimizer=build_optimizer(configs),
@@ -75,7 +78,7 @@ def build_embedding_train_model(frequency: int, time: int) -> Model:
 
 
 def train_model(model: Model):
-    train_x, train_y, validate_x, validate_y = get_data()
+    train_x, train_y, validate_x, validate_y = get_datasets()
 
 
 if __name__ == "__main__":

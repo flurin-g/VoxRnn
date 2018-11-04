@@ -1,7 +1,7 @@
 from librosa import load
 from librosa.feature import melspectrogram
 
-
+#ToDo: cleanup
 def mel_spectrogram(wav_file):
     # Read out audio range and sample rate of wav file
     audio_range, sample_rate = load(path=wav_file, sr=None)

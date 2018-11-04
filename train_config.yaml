@@ -1,6 +1,6 @@
 input_data:
   num_speakers: 630
-  sampling_rate: 22500
+  sampling_rate: 16000
   mel_spectrogram_x: 40
   mel_spectrogram_y: 128
   batch_size: 100
