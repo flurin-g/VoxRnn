@@ -13,6 +13,11 @@ __pychache__
 # idea folder
 **/.idea
 
+# wav and binary files
+Data/npy_spect/*
+Data/VoxCeleb1/vox1_dev_wav/*
+Data/VoxCeleb1/vox1_test_wav/*
+
 
 # File-based project format
 **.iws

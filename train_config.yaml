@@ -1,36 +1,34 @@
 input_data:
-  num_speakers: 630
   sampling_rate: 16000
   mel_spectrogram_x: 40
   mel_spectrogram_y: 128
-  batch_size: 100
+  batch_size: 128
+  batch_shuffle: True
+  channels: 1 # 1 = mono, 2 = stereo
 
+topology:
+  blstm1:
+    units: 128
 
-blstm1:
-  units: 128
+  dropout1: 0.5
 
-dropout1: 0.5
+  blstm2:
+    units: 128
 
-blstm2:
-  units: 128
+  dense1:
+    scaling: 10
 
-dense1:
-  scaling: 10
+  dropout2: 0.25
 
-dropout2: 0.25
+  dense2:
+    scaling: 5
 
-dense2:
-  scaling: 5
+  optimizer:
+    type: adam
+    learning_rate: 0.001
+    beta_1: 0.9
+    beta_2: 0.999
+    epsilon: 1e-08
+    decay: 0.0
 
-optimizer:
-  type: adam
-  learning_rate: 0.001
-  beta_1: 0.9
-  beta_2: 0.999
-  epsilon: 1e-08
-  decay: 0.0
-
-
-  initializer:
-    type: xavier
-  activation: prelu
+  output_layer: layer4
