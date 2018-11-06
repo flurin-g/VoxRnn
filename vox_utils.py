@@ -135,8 +135,9 @@ def get_datasets() -> tuple:
 
         id_to_label[file_id] = speaker_label
 
-    num_speakers = 0 # ToDo: implement (use unique speaker ids to calculate
-    return data_splits, id_to_label, num_speakers
+    num_speakers = len(id_to_label)
+
+    return data_splits, id_to_label, num_speakers, num_speakers
 
 
 if __name__ == "__main__":

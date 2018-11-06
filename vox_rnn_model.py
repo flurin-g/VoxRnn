@@ -20,8 +20,8 @@ def load_config() -> dict:
             sys.exit(1)
 
 
-def create_input_layer(frequency: int, time: int, channels: int) -> Input:
-    return Input(shape=[frequency, time, channels])
+def create_input_layer(batch_size: int, time: int, frequency: int, channels: int) -> Input:
+    return Input(shape=[batch_size, time, frequency, channels])
 
 
 def build_optimizer(configs: dict):
@@ -46,11 +46,16 @@ def build_model(configs: dict, num_speakers: int, output_layer: str = 'layer7') 
 
     layers = dict()
 
-    X_input = create_input_layer(input_data['mel_spectrogram_y'],
-                                 input_data['mel_spectrogram_x'])
+    input_dim = [input_data['batch_size'],
+                 input_data['mel_spectrogram_x'],
+                 input_data['mel_spectrogram_y'],
+                 input_data['channels']]
+
+    X_input = create_input_layer(*input_dim)
 
     layer1 = Bidirectional(CuDNNLSTM(topology['blstm1']['units'],
-                                     return_sequences=True))(X_input)
+                                     return_sequences=True,
+                                     input_shape=input_dim))(X_input)
 
     layer2 = Dropout(topology['dropout1'])(layer1)
 
@@ -80,8 +85,10 @@ def train_model(configs: dict, weights_path: str):
     data_splits, id_to_label, num_speakers = get_datasets()
 
     input_data = configs['input_data']
-    dim = (input_data['mel_spectrogram_y'],
-           input_data['mel_spectrogram_x'])
+
+    dim = (input_data['mel_spectrogram_x'],
+           input_data['mel_spectrogram_y'],
+           input_data['channels'])
 
     training_generator = DataGenerator(data_splits['train'],
                                        id_to_label,
@@ -118,4 +125,3 @@ def build_embedding_extractor_net(configs: dict, num_speakers: int, output_layer
 
 if __name__ == "__main__":
     train_config = load_config()
-
