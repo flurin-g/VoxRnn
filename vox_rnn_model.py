@@ -124,4 +124,5 @@ def build_embedding_extractor_net(configs: dict, num_speakers: int, output_layer
 
 
 if __name__ == "__main__":
-    train_config = load_config()
+    configs = load_config()
+    train_model(configs, )

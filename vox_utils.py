@@ -90,7 +90,6 @@ def dynamic_range_compression(spectrogram):
 
 def get_datasets() -> tuple:
     """
-    Generates train_x, train_y, dev_x, dev_y, test_x, test_y from a given dataset
     :return: tuple containing train and test sets as ndarray
     """
     configs = load_config()

@@ -10,7 +10,7 @@ spectrogram:
   sample_length: 0.4 # sec
   offset_range: [0.1, 1.5] #sec
   fft_window: 1024 # samples
-  hop_length: 160 # ms
+  hop_length: 160 # samples
 
 dataset:
   split: train-dev
