@@ -3,6 +3,13 @@ import sys
 
 import yaml
 
+GLOBAL_CONF = None
+TRAIN_CONF = None
+SPLITS = None
+META = None
+DEV_PATH = None
+WEIGHTS_PATH = None
+
 
 def load_config(root: str, file_path: str) -> dict:
     with open(os.path.join(root, file_path), 'r') as stream:
@@ -24,5 +31,6 @@ def initialize() -> dict:
     dev_path = os.path.join(root_dir, global_conf['files']['vox_dev_wav'])
     weights = os.path.join(root_dir, global_conf['files']['model_weights'])
 
-    return global_conf, train_conf, splits, meta, dev_path, weights
+    GLOBAL_CONF, TRAIN_CONF, SPLITS, META, DEV_PATH, WEIGHTS_PATH = initialize()
 
+initialize()
