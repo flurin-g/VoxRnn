@@ -1,11 +1,8 @@
 import os
-import sys
 
-
-import yaml
-import pandas as pd
-import numpy as np
 import librosa as lr
+import numpy as np
+import pandas as pd
 
 from definitions import GLOBAL_CONF
 
@@ -130,7 +127,3 @@ def get_datasets(channels: int) -> tuple:
 
     return data_splits, id_to_label, num_speakers
 
-
-if __name__ == "__main__":
-    get_datasets(1)
-    print('success')

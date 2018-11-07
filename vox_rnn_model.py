@@ -8,6 +8,7 @@ from pairwise_kl_divergence import pairwise_kl_divergence
 from data_generator import DataGenerator
 from vox_utils import get_datasets
 
+
 def create_input_layer(batch_size: int, time: int, frequency: int, channels: int) -> ks.Input:
     return ks.Input(shape=[batch_size, time, frequency, channels])
 
@@ -15,11 +16,11 @@ def create_input_layer(batch_size: int, time: int, frequency: int, channels: int
 def build_optimizer(configs: dict):
     p = configs['optimizer']
     if p['type'] == 'adam':
-        optimizer = Adam(p['learning_rate'],
-                         p['beta_1'],
-                         p['beta_2'],
-                         p['epsilon'],
-                         p['decay'])
+        optimizer = ks.optimizers.Adam(p['learning_rate'],
+                                       p['beta_1'],
+                                       p['beta_2'],
+                                       p['epsilon'],
+                                       p['decay'])
     return optimizer
 
 
@@ -42,8 +43,8 @@ def build_model(configs: dict, num_speakers: int, output_layer: str = 'layer7') 
     X_input = create_input_layer(*input_dim)
 
     layer1 = ks.layers.Bidirectional(ks.layers.CuDNNLSTM(topology['blstm1']['units'],
-                                     return_sequences=True,
-                                     input_shape=input_dim))(X_input)
+                                                         return_sequences=True,
+                                                         input_shape=input_dim))(X_input)
 
     layer2 = ks.layers.Dropout(topology['dropout1'])(layer1)
 
@@ -110,8 +111,3 @@ def build_embedding_extractor_net(configs: dict, num_speakers: int, output_layer
 
     # load model
     model.load_weights(path, by_name=True)
-
-
-if __name__ == "__main__":
-    configs = TRAIN_CONF
-    train_model(configs, WEIGHTS_PATH)
