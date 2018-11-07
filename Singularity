@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: nvidia/cuda:9.2-cudnn7-runtime-ubuntu18.04
+From: nvidia/cuda:9.0-cudnn7-runtime-centos7
 
 
 %files
@@ -9,16 +9,9 @@ From: nvidia/cuda:9.2-cudnn7-runtime-ubuntu18.04
     export LANG=C.UTF-8
 
 %post
-    apt-get update
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        cuda-command-line-tools-9-2 \
-        cuda-cublas-9-2 \
-        cuda-cufft-9-2 \
-        cuda-curand-9-2 \
-        cuda-cusolver-9-2 \
-        cuda-cusparse-9-2 \
-        python3 \
-        python3-pip
-    pip3 install --upgrade setuptools wheel
-    pip3 install -r requirements.txt
+    yum -y update
+    yum -y install yum-utils groupinstall development libgomp
+    yum -y install https://centos7.iuscommunity.org/ius-release.rpm
+    yum -y install python36u python36u-pip 
+    pip3.6 install --upgrade setuptools wheel
+    pip3.6 install -r requirements.txt
