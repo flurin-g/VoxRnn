@@ -6,7 +6,7 @@ files:
  model_weights: Data/model_weights
 
 spectrogram:
-  sampling_rate: 16000 # kHz
+  sampling_rate: 16000 # Hz
   sample_length: 0.4 # sec
   offset_range: [0.1, 1.5] #sec
   fft_window: 1024 # samples

@@ -2,10 +2,10 @@ import os
 import sys
 
 import yaml
-from pandas import read_fwf
+from pandas import read_csv
 from pandas import DataFrame
 from numpy import ndarray, random, multiply, log10, save
-from librosa import load
+import librosa as lr
 from librosa.feature import melspectrogram
 
 TRAIN = 0  # in orig file + 1, but because lists are zero based...
@@ -40,12 +40,12 @@ def write_to_disk(mel_spectrogram: ndarray, dest_dir: str, file_id: str):
 
 def load_rows(name: str) -> DataFrame:
     path = get_path(name)
-    return read_fwf(path, names=['data_set', 'path'])
+    return read_csv(path, sep=' ', names=['data_set', 'path'], header=None)
 
 
 def select_rows(rows: DataFrame, mode: str) -> DataFrame:
     # for mode train, load only data_set 1 and 2 (train and dev)
-    if mode == all:
+    if mode == 'all':
         rows = rows
     if mode == 'train-dev':
         rows = rows[rows['data_set'] != TEST + 1]
@@ -69,11 +69,11 @@ def create_spectrogram(file_id: str, offset_range: list,
     if channels == 1:
         mono = True
 
-    audio_range, _ = load(path=file_id,
-                          sr=sampling_rate,
-                          mono=mono,
-                          offset=offset,
-                          duration=sample_length)
+    audio_range, _ = lr.load(path=file_id,
+                                  sr=sampling_rate,
+                                  mono=mono,
+                                  offset=offset,
+                                  duration=sample_length)
 
     mel_spectrogram = melspectrogram(y=audio_range,
                                      sr=sampling_rate,
@@ -136,7 +136,7 @@ def get_datasets() -> tuple:
 
     num_speakers = len(id_to_label)
 
-    return data_splits, id_to_label, num_speakers, num_speakers
+    return data_splits, id_to_label, num_speakers
 
 
 if __name__ == "__main__":

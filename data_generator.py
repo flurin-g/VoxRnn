@@ -14,19 +14,17 @@ class DataGenerator(keras.utils.Sequence):
     # Generates data for Keras
 
     # ToDo: check if channels are needed for 2-dim data - currently channels = 1, so should work
-    # def __init__(self, list_IDs, labels, batch_size, dim, n_channels,
-    #              n_classes=10, shuffle=True):
-    def __init__(self, list_IDs, labels, batch_size, dim,
-                 n_classes=10, shuffle=True):
-        # Initialization
+     def __init__(self, list_IDs, labels, batch_size, dim, n_channels,
+                  n_classes=10, shuffle=True):
         self.dim = dim
         self.batch_size = batch_size
         self.labels = labels
         self.list_IDs = list_IDs
-        #self.n_channels = n_channels
+        self.n_channels = n_channels
         self.n_classes = n_classes
         self.shuffle = shuffle
         self.on_epoch_end()
+        self.indexes = None
 
     def __len__(self):
         'Denotes the number of batches per epoch'
@@ -62,7 +60,7 @@ class DataGenerator(keras.utils.Sequence):
         # Generate data
         for i, ID in enumerate(list_IDs_temp):
             # Store sample
-            X[i,] = np.load('data/' + ID + '.npy')
+            X[i, ] = np.load('data/' + ID + '.npy')
 
             # Store class
             y[i] = self.labels[ID]
