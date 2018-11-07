@@ -21,7 +21,7 @@ def get_path(name: str) -> str:
     return name
 
 
-def convert_to_id(path_name: str) -> str:
+def convert_to_filename(path_name: str) -> str:
     return path_name.replace('/', '-').replace('.', '-') + '.npy'
 
 
@@ -114,7 +114,7 @@ def get_datasets(channels: int) -> tuple:
                                              mel_config['hop_length'],
                                              channels)
 
-        file_id: str = convert_to_id(path_name)
+        file_id: str = convert_to_filename(path_name)
 
         write_to_disk(mel_spectrogram, npy_dir, file_id)
 
