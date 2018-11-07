@@ -2,11 +2,9 @@ import os
 import sys
 
 import yaml
-from pandas import read_csv
-from pandas import DataFrame
-from numpy import ndarray, random, multiply, log10, save
+import pandas as pd
+import numpy as np
 import librosa as lr
-from librosa.feature import melspectrogram
 
 TRAIN = 0  # in orig file + 1, but because lists are zero based...
 DEV = 1
@@ -33,17 +31,17 @@ def convert_to_id(path_name: str) -> str:
     return path_name.replace('/', '-').replace('.', '-') + '.npy'
 
 
-def write_to_disk(mel_spectrogram: ndarray, dest_dir: str, file_id: str):
+def write_to_disk(mel_spectrogram: np.ndarray, dest_dir: str, file_id: str):
     path = os.path.join(dest_dir, file_id)
-    save(path, mel_spectrogram, allow_pickle=False)
+    np.save(path, mel_spectrogram, allow_pickle=False)
 
 
-def load_rows(name: str) -> DataFrame:
+def load_rows(name: str) -> pd.DataFrame:
     path = get_path(name)
-    return read_csv(path, sep=' ', names=['data_set', 'path'], header=None)
+    return pd.read_csv(path, sep=' ', names=['data_set', 'path'], header=None)
 
 
-def select_rows(rows: DataFrame, mode: str) -> DataFrame:
+def select_rows(rows: pd.DataFrame, mode: str) -> pd.DataFrame:
     # for mode train, load only data_set 1 and 2 (train and dev)
     if mode == 'all':
         rows = rows
@@ -63,32 +61,32 @@ def split_rows(row) -> tuple:
 
 def create_spectrogram(file_id: str, offset_range: list,
                        sampling_rate: int, sample_length: float,
-                       fft_window: int, hop_length: int, channels: int) -> ndarray:
-    offset = random.uniform(offset_range[0], offset_range[1])
+                       fft_window: int, hop_length: int, channels: int) -> np.ndarray:
+    offset = np.random.uniform(offset_range[0], offset_range[1])
 
     if channels == 1:
         mono = True
 
     audio_range, _ = lr.load(path=file_id,
-                                  sr=sampling_rate,
-                                  mono=mono,
-                                  offset=offset,
-                                  duration=sample_length)
+                             sr=sampling_rate,
+                             mono=mono,
+                             offset=offset,
+                             duration=sample_length)
 
-    mel_spectrogram = melspectrogram(y=audio_range,
-                                     sr=sampling_rate,
-                                     n_fft=fft_window,
-                                     hop_length=hop_length)
+    mel_spectrogram = lr.feature.melspectrogram(y=audio_range,
+                                                sr=sampling_rate,
+                                                n_fft=fft_window,
+                                                hop_length=hop_length)
 
     # Compress spectrogram to weighted db-scale
     return dynamic_range_compression(mel_spectrogram)
 
 
 def dynamic_range_compression(spectrogram):
-    return log10(1 + multiply(10000, spectrogram))
+    return np.log10(1 + np.multiply(10000, spectrogram))
 
 
-def get_datasets() -> tuple:
+def get_datasets(channels: int) -> tuple:
     """
     :return: tuple containing train and test sets as ndarray
     """
@@ -120,7 +118,7 @@ def get_datasets() -> tuple:
                                              mel_config['sample_length'],
                                              mel_config['fft_window'],
                                              mel_config['hop_length'],
-                                             configs['channels'])
+                                             channels)
 
         file_id: str = convert_to_id(path_name)
 
@@ -140,5 +138,5 @@ def get_datasets() -> tuple:
 
 
 if __name__ == "__main__":
-    get_datasets()
+    get_datasets(1)
     print('success')

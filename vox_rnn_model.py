@@ -1,10 +1,7 @@
 import multiprocessing
 import sys
 import yaml
-import h5py
-from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import CuDNNLSTM, Bidirectional, Dropout, Dense
-from tensorflow.keras.optimizers import Adam
+import tensorflow.keras as ks
 
 from pairwise_kl_divergence import pairwise_kl_divergence
 from data_generator import DataGenerator
@@ -20,8 +17,8 @@ def load_config() -> dict:
             sys.exit(1)
 
 
-def create_input_layer(batch_size: int, time: int, frequency: int, channels: int) -> Input:
-    return Input(shape=[batch_size, time, frequency, channels])
+def create_input_layer(batch_size: int, time: int, frequency: int, channels: int) -> ks.Input:
+    return ks.Input(shape=[batch_size, time, frequency, channels])
 
 
 def build_optimizer(configs: dict):
@@ -35,7 +32,7 @@ def build_optimizer(configs: dict):
     return optimizer
 
 
-def build_model(configs: dict, num_speakers: int, output_layer: str = 'layer7') -> Model:
+def build_model(configs: dict, num_speakers: int, output_layer: str = 'layer7') -> ks.Model:
     """
     A spectrogram is the input and each discrete time-step is fed to one unit
 
@@ -53,26 +50,26 @@ def build_model(configs: dict, num_speakers: int, output_layer: str = 'layer7') 
 
     X_input = create_input_layer(*input_dim)
 
-    layer1 = Bidirectional(CuDNNLSTM(topology['blstm1']['units'],
+    layer1 = ks.layers.Bidirectional(ks.layers.CuDNNLSTM(topology['blstm1']['units'],
                                      return_sequences=True,
                                      input_shape=input_dim))(X_input)
 
-    layer2 = Dropout(topology['dropout1'])(layer1)
+    layer2 = ks.layers.Dropout(topology['dropout1'])(layer1)
 
-    layers['layer3'] = layer3 = Bidirectional(CuDNNLSTM(topology['blstm1']['units']))(layer2)
+    layers['layer3'] = layer3 = ks.wrappersBidirectional(ks.layers.CuDNNLSTM(topology['blstm1']['units']))(layer2)
 
     num_units = num_speakers * topology['dense1']['scaling']
-    layers['layer4'] = layer4 = Dense(num_units)(layer3)
+    layers['layer4'] = layer4 = ks.layers.Dense(num_units)(layer3)
 
-    layer5 = Dropout(topology['dropout2'])(layer4)
+    layer5 = ks.layers.Dropout(topology['dropout2'])(layer4)
 
     num_units = num_speakers * topology['dense2']['scaling']
-    layers['layer6'] = layer6 = Dense(num_units)(layer5)
+    layers['layer6'] = layer6 = ks.layers.Dense(num_units)(layer5)
 
     num_units = num_speakers
-    layers['layer7'] = layer7 = Dense(num_units)(layer6)
+    layers['layer7'] = layer7 = ks.layers.Dense(num_units)(layer6)
 
-    model = Model(inputs=X_input, outputs=output_layer, name='ResNet20')
+    model = ks.Model(inputs=X_input, outputs=output_layer, name='ResNet20')
 
     model.compile(loss=pairwise_kl_divergence,
                   optimizer=build_optimizer(topology),
@@ -82,13 +79,14 @@ def build_model(configs: dict, num_speakers: int, output_layer: str = 'layer7') 
 
 def train_model(configs: dict, weights_path: str):
     cpu_cores = multiprocessing.cpu_count()
-    data_splits, id_to_label, num_speakers = get_datasets()
 
     input_data = configs['input_data']
 
     dim = (input_data['mel_spectrogram_x'],
            input_data['mel_spectrogram_y'],
            input_data['channels'])
+
+    data_splits, id_to_label, num_speakers = get_datasets(configs['input_data']['channels'])
 
     training_generator = DataGenerator(data_splits['train'],
                                        id_to_label,
