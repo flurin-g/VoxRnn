@@ -7,19 +7,12 @@ import pandas as pd
 import numpy as np
 import librosa as lr
 
+from definitions import GLOBAL_CONF
+
 TRAIN = 0  # in orig file + 1, but because lists are zero based...
 DEV = 1
 TEST = 2
 NUM_DATA_SETS = 2
-
-
-def load_config() -> dict:
-    with open("global_configs.yaml", 'r') as stream:
-        try:
-            return yaml.load(stream)
-        except yaml.YAMLError as exc:
-            print("error parsing file")
-            sys.exit(1)
 
 
 def get_path(name: str) -> str:
@@ -91,7 +84,7 @@ def get_datasets(channels: int) -> tuple:
     """
     :return: tuple containing train and test sets as ndarray
     """
-    configs = load_config()
+    configs = GLOBAL_CONF
 
     # directory of voxCeleb dev wave files
     vox_dev_wav = get_path(configs['files']['vox_dev_wav'])

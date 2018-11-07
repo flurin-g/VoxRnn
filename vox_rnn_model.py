@@ -3,19 +3,10 @@ import sys
 import yaml
 import tensorflow.keras as ks
 
+from definitions import TRAIN_CONF, WEIGHTS_PATH
 from pairwise_kl_divergence import pairwise_kl_divergence
 from data_generator import DataGenerator
 from vox_utils import get_datasets
-
-
-def load_config() -> dict:
-    with open("train_config.yaml", 'r') as stream:
-        try:
-            return yaml.load(stream)
-        except yaml.YAMLError as exc:
-            print("error parsing file")
-            sys.exit(1)
-
 
 def create_input_layer(batch_size: int, time: int, frequency: int, channels: int) -> ks.Input:
     return ks.Input(shape=[batch_size, time, frequency, channels])
@@ -122,5 +113,5 @@ def build_embedding_extractor_net(configs: dict, num_speakers: int, output_layer
 
 
 if __name__ == "__main__":
-    configs = load_config()
-    train_model(configs, )
+    configs = TRAIN_CONF
+    train_model(configs, WEIGHTS_PATH)
