@@ -5,26 +5,26 @@ be streamed directly from disc.
 Code is based on the suggestions of Shervine Amidi from Stanford, see:
 https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 """
-
+import os.path
 import numpy as np
-import keras
+import keras as ks
+
+from definitions import NPY_PATH, TRAIN_CONF
 
 
-class DataGenerator(keras.utils.Sequence):
-    # Generates data for Keras
+class DataGenerator(ks.utils.Sequence):
+    'Generates data for Keras'
 
-    # ToDo: check if channels are needed for 2-dim data - currently channels = 1, so should work
-     def __init__(self, list_IDs, labels, batch_size, dim, n_channels,
-                  n_classes=10, shuffle=True):
+    def __init__(self, list_IDs, labels, batch_size, dim,
+                 n_classes, shuffle=True):
+        'Initialization'
         self.dim = dim
         self.batch_size = batch_size
         self.labels = labels
         self.list_IDs = list_IDs
-        self.n_channels = n_channels
         self.n_classes = n_classes
         self.shuffle = shuffle
         self.on_epoch_end()
-        self.indexes = None
 
     def __len__(self):
         'Denotes the number of batches per epoch'
@@ -44,25 +44,23 @@ class DataGenerator(keras.utils.Sequence):
         return X, y
 
     def on_epoch_end(self):
-        # Updates indexes after each epoch
+        'Updates indexes after each epoch'
         self.indexes = np.arange(len(self.list_IDs))
-        if self.shuffle:
+        if self.shuffle == True:
             np.random.shuffle(self.indexes)
 
     def __data_generation(self, list_IDs_temp):
-        # Generates data containing batch_size samples' X : (n_samples, *dim, n_channels)
+        'Generates data containing batch_size samples'  # X : (n_samples, *dim)
         # Initialization
-        #X = np.empty((self.batch_size, *self.dim, self.n_channels))
-        # ToDo: remove channels if not needed
         X = np.empty((self.batch_size, *self.dim))
-        y = np.empty(self.batch_size, dtype=int)
+        y = np.empty((self.batch_size), dtype=int)
 
         # Generate data
         for i, ID in enumerate(list_IDs_temp):
             # Store sample
-            X[i, ] = np.load('data/' + ID + '.npy')
+            X[i,] = np.load(os.path.join(NPY_PATH, ID))
 
             # Store class
             y[i] = self.labels[ID]
 
-        return X, keras.utils.to_categorical(y, num_classes=self.n_classes)
+        return X, ks.utils.to_categorical(y, num_classes=self.n_classes)

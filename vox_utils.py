@@ -4,7 +4,7 @@ import librosa as lr
 import numpy as np
 import pandas as pd
 
-from definitions import GLOBAL_CONF
+from definitions import GLOBAL_CONF, NPY_PATH, VOX_DEV_WAV
 
 TRAIN = 0  # in orig file + 1, but because lists are zero based...
 DEV = 1
@@ -57,6 +57,8 @@ def create_spectrogram(file_id: str, offset_range: list,
 
     if channels == 1:
         mono = True
+    else:
+        mono = False
 
     audio_range, _ = lr.load(path=file_id,
                              sr=sampling_rate,
@@ -64,13 +66,15 @@ def create_spectrogram(file_id: str, offset_range: list,
                              offset=offset,
                              duration=sample_length)
 
+    # librosa uses centered frames, the result will always be +1 frame, therefore subtract 1 frame
+    audio_range = audio_range[:-1]
     mel_spectrogram = lr.feature.melspectrogram(y=audio_range,
                                                 sr=sampling_rate,
                                                 n_fft=fft_window,
                                                 hop_length=hop_length)
 
     # Compress spectrogram to weighted db-scale
-    return dynamic_range_compression(mel_spectrogram)
+    return np.rot90(dynamic_range_compression(mel_spectrogram))
 
 
 def dynamic_range_compression(spectrogram):
@@ -84,9 +88,7 @@ def get_datasets(channels: int) -> tuple:
     configs = GLOBAL_CONF
 
     # directory of voxCeleb dev wave files
-    vox_dev_wav = get_path(configs['files']['vox_dev_wav'])
-    # directory to store numpy binaries
-    npy_dir = get_path(configs['files']['numpy'])
+    vox_dev_wav = VOX_DEV_WAV
 
     data_splits = dict()
     data_splits['train'] = list()
@@ -113,7 +115,7 @@ def get_datasets(channels: int) -> tuple:
 
         file_id: str = convert_to_filename(path_name)
 
-        write_to_disk(mel_spectrogram, npy_dir, file_id)
+        write_to_disk(mel_spectrogram, NPY_PATH, file_id)
 
         # add label to train/dev-set _y
         if data_set == TRAIN:
@@ -123,7 +125,4 @@ def get_datasets(channels: int) -> tuple:
 
         id_to_label[file_id] = speaker_label
 
-    num_speakers = len(id_to_label)
-
-    return data_splits, id_to_label, num_speakers
-
+    return data_splits, id_to_label

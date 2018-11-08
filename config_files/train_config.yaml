@@ -2,7 +2,7 @@ input_data:
   sampling_rate: 16000
   mel_spectrogram_x: 40
   mel_spectrogram_y: 128
-  batch_size: 128
+  batch_size: 64
   batch_shuffle: True
   channels: 1 # 1 = mono, 2 = stereo
 
@@ -16,12 +16,15 @@ topology:
     units: 128
 
   dense1:
-    scaling: 10
+    units: 512
 
   dropout2: 0.25
 
   dense2:
-    scaling: 5
+    units: 256
+
+  dense3:
+    units: 64
 
   optimizer:
     type: adam
