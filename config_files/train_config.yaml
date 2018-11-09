@@ -3,7 +3,7 @@ input_data:
   mel_spectrogram_x: 40
   mel_spectrogram_y: 128
   batch_size: 64
-  batch_shuffle: True
+  batch_mode: shuffle
   channels: 1 # 1 = mono, 2 = stereo
 
 topology:
@@ -16,15 +16,13 @@ topology:
     units: 128
 
   dense1:
-    units: 512
+    scaling: 10
 
   dropout2: 0.25
 
   dense2:
-    units: 256
+    scaling: 5
 
-  dense3:
-    units: 64
 
   optimizer:
     type: adam
@@ -34,4 +32,4 @@ topology:
     epsilon: 1e-08
     decay: 0.0
 
-  output_layer: layer4
+  output_layer: layer8

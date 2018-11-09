@@ -125,4 +125,4 @@ def get_datasets(channels: int) -> tuple:
 
         id_to_label[file_id] = speaker_label
 
-    return data_splits, id_to_label
+    return data_splits, id_to_label, len(id_to_label)
