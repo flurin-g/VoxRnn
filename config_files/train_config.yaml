@@ -3,25 +3,23 @@ input_data:
   mel_spectrogram_x: 40
   mel_spectrogram_y: 128
   batch_size: 64
-  batch_mode: shuffle
+  batch_shuffle: True
   channels: 1 # 1 = mono, 2 = stereo
 
 topology:
-  blstm1:
-    units: 128
+  blstm1_units: 128
 
   dropout1: 0.5
 
-  blstm2:
-    units: 128
+  blstm2_units: 128
 
-  dense1:
-    scaling: 10
+  dense1_units: 400 # timit setting: 10 * 40 speakers
 
   dropout2: 0.25
 
-  dense2:
-    scaling: 5
+  dense2_units: 200 # timit setting: 5 * 40 speakers
+
+  dense3_units: 40 # timit setting: 40 speakers
 
 
   optimizer:

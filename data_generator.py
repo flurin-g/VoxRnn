@@ -1,6 +1,5 @@
 import itertools
 import math
-import os.path
 import random
 
 import pandas as pd
@@ -8,22 +7,17 @@ import pandas as pd
 import numpy as np
 import keras as ks
 
-from definitions import NPY_PATH
-
-
 class DataGenerator(ks.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, dataset: pd.DataFrame, batch_size: int, dim: tuple,
-                 npy_path: os.path, shuffle: bool):
+    def __init__(self, dataset: pd.DataFrame, dim: tuple, batch_size: int, shuffle: bool):
         self.dim = dim
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.npy_path = npy_path
         self.mode = shuffle
         self.on_epoch_end()
         self.dataset = dataset
-        self.pair_indices = list(itertools.combinations(dataset.index, 2))
+        self.pair_indices = list(itertools.combinations(range(len(dataset)), 2))
 
     def __len__(self):
         return int(math.floor(len(self.pair_indices) / self.batch_size))
@@ -40,8 +34,8 @@ class DataGenerator(ks.utils.Sequence):
         for i, pair in enumerate(batch_indices):
             row_a = self.dataset.loc[pair[0]]
             row_b = self.dataset.loc[pair[1]]
-            X[current_batch][0:self.dim[0]] = np.load(os.path.join(NPY_PATH, row_a['path']))
-            X[current_batch][self.dim[0]:2 * self.dim[0]] = np.load(os.path.join(NPY_PATH, row_a['path']))
+            X[current_batch][0:self.dim[0]] = np.load(row_a['path'])
+            X[current_batch][self.dim[0]:2 * self.dim[0]] = np.load(row_a['path'])
 
             if row_a['label'] == row_b['label']:
                 y[i] = 1

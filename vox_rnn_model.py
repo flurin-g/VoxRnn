@@ -1,6 +1,7 @@
-import math
-import os
 import multiprocessing
+from typing import Any, Union
+
+import tensorflow as tf
 import keras as ks
 
 from data_generator import DataGenerator
@@ -40,44 +41,51 @@ def kb_hinge_loss(y_true, y_pred):
     return y_true * y_pred + (1 - y_true) * hinge
 
 
-def build_model(input_dim: list, configs: dict, num_speakers: int, output_layer: str = 'layer8') -> ks.Model:
+def create_lstm(units: int, gpu: bool):
+    if gpu:
+        return ks.layers.CuDNNLSTM(units, return_sequences=True)
+    else:
+        return ks.layers.LSTM(units, return_sequences=True)
+
+
+def build_model(input_dim: list, configs: dict, output_layer: str = 'layer8') -> ks.Model:
     topology = configs['topology']
+
+    is_gpu = tf.test.is_gpu_available(cuda_only=True)
 
     layers = dict()
 
     X_input = ks.Input(shape=input_dim)
 
-    layer1 = ks.layers.Bidirectional(ks.layers.LSTM(units=topology['blstm1']['units'],
-                                                    return_sequences=True))(X_input)
+    layer1 = ks.layers.Bidirectional(create_lstm(topology['blstm1']['units'], is_gpu))(X_input)
 
     layer2 = ks.layers.Dropout(topology['dropout1'])(layer1)
 
-    layers['layer3'] = layer3 = ks.layers.Bidirectional(ks.layers.LSTM(topology['blstm2']['units']))(layer2)
+    layers['layer3'] = layer3 = ks.layers.Bidirectional(create_lstm(topology['blstm2']['units'], is_gpu))(layer2)
 
-    num_units = num_speakers * topology['dense1']['scaling']
+    num_units = topology['dense1_units']
     layers['layer4'] = layer4 = ks.layers.Dense(num_units)(layer3)
 
     layer5 = ks.layers.Dropout(topology['dropout2'])(layer4)
 
-    num_units = num_speakers * topology['dense2']['scaling']
+    num_units = topology['dense2_units']
     layers['layer6'] = layer6 = ks.layers.Dense(num_units)(layer5)
 
-    num_units = num_speakers
+    num_units = topology['dense3_units']
     layers['layer7'] = layer7 = ks.layers.Dense(num_units)(layer6)
 
-    num_units = int(math.log(num_speakers, 2))
     layers['layer8'] = layer8 = ks.layers.Dense(num_units, activation='softmax')(layer6)
 
     return ks.Model(inputs=X_input, outputs=layers[output_layer])
 
 
-def build_siam(configs, num_speakers):
+def build_siam(configs):
     input_data = configs['input_data']
 
     input_dim = [input_data['mel_spectrogram_x'],
                  input_data['mel_spectrogram_y']]
 
-    base_network = build_model(input_dim, configs, num_speakers)
+    base_network = build_model(input_dim, configs)
 
     input_a = ks.Input(shape=input_dim)
     input_b = ks.Input(shape=input_dim)
@@ -94,32 +102,26 @@ def build_siam(configs, num_speakers):
     return model
 
 
-def train_model(configs: dict, weights_path: str, npy_path: os.path):
+def train_model(configs: dict, weights_path: str):
     cpu_cores = multiprocessing.cpu_count()
 
     input_data = configs['input_data']
     dim = (input_data['mel_spectrogram_x'],
            input_data['mel_spectrogram_y'])
 
-    data_splits, id_to_label, num_speakers = get_datasets(configs['input_data']['channels'])
+    dataset = get_datasets(configs['input_data']['channels'])
 
-    training_generator = DataGenerator(data_splits['train'],
-                                       id_to_label,
-                                       input_data['batch_size'],
+    training_generator = DataGenerator(dataset,
                                        dim,
-                                       num_speakers,
-                                       npy_path,
-                                       mode=input_data['batch_mode'])
+                                       input_data['batch_size'],
+                                       input_data['batch_shuffle'])
 
-    validation_generator = DataGenerator(data_splits['dev'],
-                                         id_to_label,
-                                         input_data['batch_size'],
-                                         dim,
-                                         num_speakers,
-                                         npy_path,
-                                         mode=input_data['batch_mode'])
+    validation_generator = DataGenerator(dataset,
+                                       dim,
+                                       input_data['batch_size'],
+                                       input_data['batch_shuffle'])
 
-    siamese_net = build_siam(configs, num_speakers)
+    siamese_net = build_siam(configs)
 
     siamese_net.fit_generator(generator=training_generator,
                               validation_data=validation_generator,
@@ -129,7 +131,7 @@ def train_model(configs: dict, weights_path: str, npy_path: os.path):
     siamese_net.save_weights(weights_path, overwrite=False)
 
 
-def build_embedding_extractor_net(configs: dict, output_layer: int, path: str):
+def build_embedding_extractor_net(configs: dict, output_layer: str, path: str):
     pass
     # create model with output layer3/4/6/7 to extract embeddings
     input_data = configs['input_data']

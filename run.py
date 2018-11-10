@@ -5,4 +5,4 @@ from vox_utils import get_datasets
 if __name__ == '__main__':
     configs = TRAIN_CONF
     #data_splits, id_to_label, num_speakers = get_datasets(1)
-    train_model(configs, WEIGHTS_PATH, NPY_PATH)
+    train_model(configs, WEIGHTS_PATH)
