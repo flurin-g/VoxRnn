@@ -5,7 +5,7 @@ import tensorflow as tf
 import keras as ks
 
 from data_generator import DataGenerator
-from vox_utils import get_datasets
+from vox_utils import get_dataset
 
 
 def build_optimizer(configs: dict):
@@ -109,7 +109,7 @@ def train_model(configs: dict, weights_path: str):
     dim = (input_data['mel_spectrogram_x'],
            input_data['mel_spectrogram_y'])
 
-    dataset = get_datasets(configs['input_data']['channels'])
+    dataset = get_dataset()
 
     training_generator = DataGenerator(dataset,
                                        dim,
