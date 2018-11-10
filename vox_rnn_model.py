@@ -57,11 +57,11 @@ def build_model(input_dim: list, configs: dict, output_layer: str = 'layer8') ->
 
     X_input = ks.Input(shape=input_dim)
 
-    layer1 = ks.layers.Bidirectional(create_lstm(topology['blstm1']['units'], is_gpu))(X_input)
+    layer1 = ks.layers.Bidirectional(create_lstm(topology['blstm1_units'], is_gpu))(X_input)
 
     layer2 = ks.layers.Dropout(topology['dropout1'])(layer1)
 
-    layers['layer3'] = layer3 = ks.layers.Bidirectional(create_lstm(topology['blstm2']['units'], is_gpu))(layer2)
+    layers['layer3'] = layer3 = ks.layers.Bidirectional(create_lstm(topology['blstm2_units'], is_gpu))(layer2)
 
     num_units = topology['dense1_units']
     layers['layer4'] = layer4 = ks.layers.Dense(num_units)(layer3)
@@ -117,9 +117,9 @@ def train_model(configs: dict, weights_path: str):
                                        input_data['batch_shuffle'])
 
     validation_generator = DataGenerator(dataset,
-                                       dim,
-                                       input_data['batch_size'],
-                                       input_data['batch_shuffle'])
+                                         dim,
+                                         input_data['batch_size'],
+                                         input_data['batch_shuffle'])
 
     siamese_net = build_siam(configs)
 
