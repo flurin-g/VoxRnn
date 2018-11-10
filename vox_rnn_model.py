@@ -9,7 +9,7 @@ from vox_utils import get_datasets
 
 def build_optimizer(configs: dict):
     optimizer = None
-    p = configs['optimizer']
+    p = configs['topology']['optimizer']
     if p['type'] == 'adam':
         optimizer = ks.optimizers.Adam(p['learning_rate'],
                                        p['beta_1'],
@@ -19,7 +19,7 @@ def build_optimizer(configs: dict):
     return optimizer
 
 
-def kullback_leibler_distribution(vects):
+def kullback_leibler_divergence(vects):
     x, y = vects
     x = ks.backend.clip(x, ks.backend.epsilon(), 1)
     y = ks.backend.clip(y, ks.backend.epsilon(), 1)
@@ -37,13 +37,15 @@ def kb_hinge_loss(y_true, y_pred):
     y_pred: output of siamese net i.e. kullback-leibler distribution
     """
     hinge = ks.backend.maximum(1. - y_pred, 0.)
-    return y_true * y_pred + (1 - y_pred) * hinge
+    return y_true * y_pred + (1 - y_true) * hinge
 
 
-def build_model(X_input: ks.Input, configs: dict, num_speakers: int, output_layer: str = 'layer8') -> ks.Model:
+def build_model(input_dim: list, configs: dict, num_speakers: int, output_layer: str = 'layer8') -> ks.Model:
     topology = configs['topology']
 
     layers = dict()
+
+    X_input = ks.Input(shape=input_dim)
 
     layer1 = ks.layers.Bidirectional(ks.layers.LSTM(units=topology['blstm1']['units'],
                                                     return_sequences=True))(X_input)
@@ -63,7 +65,7 @@ def build_model(X_input: ks.Input, configs: dict, num_speakers: int, output_laye
     num_units = num_speakers
     layers['layer7'] = layer7 = ks.layers.Dense(num_units)(layer6)
 
-    num_units = math.log(num_speakers, 2)
+    num_units = int(math.log(num_speakers, 2))
     layers['layer8'] = layer8 = ks.layers.Dense(num_units, activation='softmax')(layer6)
 
     return ks.Model(inputs=X_input, outputs=layers[output_layer])
@@ -75,19 +77,21 @@ def build_siam(configs, num_speakers):
     input_dim = [input_data['mel_spectrogram_x'],
                  input_data['mel_spectrogram_y']]
 
+    base_network = build_model(input_dim, configs, num_speakers)
+
     input_a = ks.Input(shape=input_dim)
     input_b = ks.Input(shape=input_dim)
 
-    model_a = build_model(input_a, configs, num_speakers)
-    model_b = build_model(input_b, configs, num_speakers)
+    model_a = base_network(input_a)
+    model_b = base_network(input_b)
 
-    distance = ks.layers.Lambda(kullback_leibler_distribution,
+    distance = ks.layers.Lambda(kullback_leibler_divergence,
                                 output_shape=kullback_leibler_shape)([model_a, model_b])
 
+    model = ks.models.Model([input_a, input_b], distance)
     adam = build_optimizer(configs)
-
-    model = ks.Model([input_a, input_b], distance)
-    return model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
+    return model
 
 
 def train_model(configs: dict, weights_path: str, npy_path: os.path):
@@ -103,7 +107,7 @@ def train_model(configs: dict, weights_path: str, npy_path: os.path):
                                        id_to_label,
                                        input_data['batch_size'],
                                        dim,
-                                       input_data['num_classes'],
+                                       num_speakers,
                                        npy_path,
                                        mode=input_data['batch_mode'])
 
@@ -111,7 +115,7 @@ def train_model(configs: dict, weights_path: str, npy_path: os.path):
                                          id_to_label,
                                          input_data['batch_size'],
                                          dim,
-                                         input_data['num_classes'],
+                                         num_speakers,
                                          npy_path,
                                          mode=input_data['batch_mode'])
 

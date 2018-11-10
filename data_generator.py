@@ -31,7 +31,7 @@ class DataGenerator(ks.utils.Sequence):
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(math.ceil(len(self.list_IDs) / self.batch_size))
+        return int(math.floor(len(self.list_IDs) / self.batch_size))
 
     def __getitem__(self, index):
         'Generate one batch of data'
@@ -59,6 +59,7 @@ class DataGenerator(ks.utils.Sequence):
         y = np.empty(self.batch_size, dtype=int)
 
         # Generate data
+        #itertools.combinations
         for i, ID in enumerate(list_IDs_temp):
             # Store sample
             X[i] = np.load(os.path.join(NPY_PATH, ID))
