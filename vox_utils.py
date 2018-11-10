@@ -80,8 +80,7 @@ def get_dataset() -> pd.DataFrame:
         configs['files']['vox_celeb_splits'],
         sep=' ',
         names=['split', 'wav_path'],
-        header=None,
-        nrows=100
+        header=None
     )
 
     splits['VoxCeleb1 ID'] = splits['wav_path'].apply(lambda p: p.split('/')[0])
