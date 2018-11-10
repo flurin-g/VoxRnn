@@ -1,12 +1,10 @@
-"""
-Custom Data-Generator for Keras, allows to load larger-than-memory data-sets to
-be streamed directly from disc.
-
-Code is based on the suggestions of Shervine Amidi from Stanford, see:
-https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
-"""
+import itertools
 import math
 import os.path
+import random
+
+import pandas as pd
+
 import numpy as np
 import keras as ks
 
@@ -16,55 +14,42 @@ from definitions import NPY_PATH
 class DataGenerator(ks.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, list_IDs: dict, labels: dict, batch_size: int,
-                 dim: tuple, n_classes: int, npy_path: os.path, mode: str):
-        'Initialization'
+    def __init__(self, dataset: pd.DataFrame, batch_size: int, dim: tuple,
+                 npy_path: os.path, shuffle: bool):
         self.dim = dim
         self.batch_size = batch_size
-        self.labels = labels
-        self.list_IDs = list_IDs
-        self.mode = mode
+        self.shuffle = shuffle
         self.npy_path = npy_path
-        self.n_classes = n_classes
-        self.mode = mode
+        self.mode = shuffle
         self.on_epoch_end()
+        self.dataset = dataset
+        self.pair_indices = list(itertools.combinations(dataset.index, 2))
 
     def __len__(self):
-        'Denotes the number of batches per epoch'
-        return int(math.floor(len(self.list_IDs) / self.batch_size))
+        return int(math.floor(len(self.pair_indices) / self.batch_size))
 
-    def __getitem__(self, index):
+    def __getitem__(self, current_batch):
         'Generate one batch of data'
-        # Generate indexes of the batch
-        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
+        # batchsized list of indices of pairs
+        batch_indices = self.pair_indices[current_batch * self.batch_size:(current_batch + 1) * self.batch_size]
 
-        # Find list of IDs
-        list_IDs_temp = [self.list_IDs[k] for k in indexes]
+        # init np array for pairs and corresponding labels
+        X = np.empty((self.batch_size, 2 * self.dim[0], self.dim[1]))
+        y = np.empty(self.batch_size, dtype=int)
 
-        # Generate data
-        X, y = self.__data_generation(list_IDs_temp)
+        for i, pair in enumerate(batch_indices):
+            row_a = self.dataset.loc[pair[0]]
+            row_b = self.dataset.loc[pair[1]]
+            X[current_batch][0:self.dim[0]] = np.load(os.path.join(NPY_PATH, row_a['path']))
+            X[current_batch][self.dim[0]:2 * self.dim[0]] = np.load(os.path.join(NPY_PATH, row_a['path']))
+
+            if row_a['label'] == row_b['label']:
+                y[i] = 1
+            else:
+                y[i] = 0
 
         return X, y
 
     def on_epoch_end(self):
-        'Updates indexes after each epoch'
-        self.indexes = np.arange(len(self.list_IDs))
         if self.mode == 'shuffle':
-            np.random.shuffle(self.indexes)
-
-    def __data_generation(self, list_IDs_temp):
-        'Generates data containing batch_size samples'  # X : (n_samples, *dim)
-        # Initialization
-        X = np.empty((self.batch_size, *self.dim))
-        y = np.empty(self.batch_size, dtype=int)
-
-        # Generate data
-        #itertools.combinations
-        for i, ID in enumerate(list_IDs_temp):
-            # Store sample
-            X[i] = np.load(os.path.join(NPY_PATH, ID))
-
-            # Store class
-            y[i] = self.labels[ID]
-
-        return X, ks.utils.to_categorical(y, num_classes=self.n_classes)
+            random.shuffle(self.pair_indices)
