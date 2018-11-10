@@ -4,12 +4,11 @@ import librosa as lr
 import numpy as np
 import pandas as pd
 
-from definitions import GLOBAL_CONF, NPY_PATH, VOX_DEV_WAV
+from definitions import GLOBAL_CONF, NPY_PATH
 
-TRAIN = 0  # in orig file + 1, but because lists are zero based...
-DEV = 1
-TEST = 2
-NUM_DATA_SETS = 2
+TRAIN = 1
+DEV = 2
+TEST = 3
 
 
 def get_path(name: str) -> str:
@@ -18,41 +17,25 @@ def get_path(name: str) -> str:
     return name
 
 
-def convert_to_filename(path_name: str) -> str:
+def get_wav_path(split, path):
+    files = GLOBAL_CONF['files']
+    if split == TEST:
+        return get_path(os.path.join(files['vox_test_wav'], path))
+    else:
+        return get_path(os.path.join(files['vox_dev_wav'], path))
+
+
+def convert_to_spectrogram_filename(path_name: str) -> str:
     return path_name.replace('/', '-').replace('.', '-') + '.npy'
 
 
-def write_to_disk(mel_spectrogram: np.ndarray, dest_dir: str, file_id: str):
-    path = os.path.join(dest_dir, file_id)
-    np.save(path, mel_spectrogram, allow_pickle=False)
-
-
-def load_rows(name: str) -> pd.DataFrame:
-    path = get_path(name)
-    return pd.read_csv(path, sep=' ', names=['data_set', 'path'], header=None)
-
-
-def select_rows(rows: pd.DataFrame, mode: str) -> pd.DataFrame:
-    # for mode train, load only data_set 1 and 2 (train and dev)
-    if mode == 'all':
-        rows = rows
-    if mode == 'train-dev':
-        rows = rows[rows['data_set'] != TEST + 1]
-
-    return rows
-
-
-def split_rows(row) -> tuple:
-    """
-    :param row:
-    :return:  data_set = train/dev/test-set, speaker_label = path[2:7], file_id = path
-    """
-    return (row['data_set'] - 1), row['path'][2:7], row['path']
+def persist_spectrogram(mel_spectrogram: np.ndarray, spectrogram_path: str):
+    np.save(spectrogram_path, mel_spectrogram, allow_pickle=False)
 
 
 def create_spectrogram(file_id: str, offset_range: list,
                        sampling_rate: int, sample_length: float,
-                       fft_window: int, hop_length: int, channels: int) -> np.ndarray:
+                       fft_window: int, hop_length: int, channels: int = 1) -> np.ndarray:
     offset = np.random.uniform(offset_range[0], offset_range[1])
 
     if channels == 1:
@@ -81,48 +64,52 @@ def dynamic_range_compression(spectrogram):
     return np.log10(1 + np.multiply(10000, spectrogram))
 
 
-def get_datasets(channels: int) -> tuple:
+def get_dataset() -> pd.DataFrame:
     """
-    :return: tuple containing train and test sets as ndarray
+    :return: DataFrame containing dataset with metadata and filepaths
     """
     configs = GLOBAL_CONF
 
-    # directory of voxCeleb dev wave files
-    vox_dev_wav = VOX_DEV_WAV
+    meta = pd.read_csv(
+        configs['files']['vox_celeb_meta'],
+        sep='\t',
+        index_col=0
+    )
 
-    data_splits = dict()
-    data_splits['train'] = list()
-    data_splits['dev'] = list()
+    splits = pd.read_csv(
+        configs['files']['vox_celeb_splits'],
+        sep=' ',
+        names=['split', 'wav_path'],
+        header=None,
+        nrows=100
+    )
 
-    id_to_label = dict()
+    splits['VoxCeleb1 ID'] = splits['wav_path'].apply(lambda p: p.split('/')[0])
+    splits['wav_path'] = splits.apply(
+        lambda r: get_wav_path(r['split'], r['wav_path']),
+        axis='columns'
+    )
 
-    rows = load_rows(configs['files']['vox_celeb_splits'])
+    dataset = pd.merge(splits, meta, how='left', on='VoxCeleb1 ID', validate="m:1")
 
-    # select subset according to vox1_meta
-    rows = select_rows(rows, configs['dataset']['split'])
+    dataset['spectrogram_path'] = dataset['wav_path'].apply(
+        lambda p: os.path.join(NPY_PATH, convert_to_spectrogram_filename(p)))
 
     mel_config = configs['spectrogram']
-    for _, row in rows.iterrows():
-        data_set, speaker_label, path_name = split_rows(row)
+    for _, row in dataset.iterrows():
+        wav_path = row['wav_path']
+        print(wav_path)
+        spectrogram_path = row['spectrogram_path']
+        if not os.path.exists(spectrogram_path):
+            mel_spectrogram = create_spectrogram(wav_path,
+                                                 mel_config['offset_range'],
+                                                 mel_config['sampling_rate'],
+                                                 mel_config['sample_length'],
+                                                 mel_config['fft_window'],
+                                                 mel_config['hop_length'])
 
-        mel_spectrogram = create_spectrogram(vox_dev_wav + "/" + path_name,
-                                             mel_config['offset_range'],
-                                             mel_config['sampling_rate'],
-                                             mel_config['sample_length'],
-                                             mel_config['fft_window'],
-                                             mel_config['hop_length'],
-                                             channels)
+            persist_spectrogram(mel_spectrogram, spectrogram_path)
 
-        file_id: str = convert_to_filename(path_name)
+    return dataset
 
-        write_to_disk(mel_spectrogram, NPY_PATH, file_id)
 
-        # add label to train/dev-set _y
-        if data_set == TRAIN:
-            data_splits['train'].append(file_id)
-        elif data_set == DEV:
-            data_splits['dev'].append(file_id)
-
-        id_to_label[file_id] = speaker_label
-
-    return data_splits, id_to_label, len(id_to_label)
