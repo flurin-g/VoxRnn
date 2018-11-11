@@ -34,8 +34,8 @@ class DataGenerator(ks.utils.Sequence):
         for i, pair in enumerate(batch_indices):
             row_a = self.dataset.loc[pair[0]]
             row_b = self.dataset.loc[pair[1]]
-            X[current_batch][0:self.dim[0]] = np.load(row_a['path'])
-            X[current_batch][self.dim[0]:2 * self.dim[0]] = np.load(row_a['path'])
+            X[current_batch][0:self.dim[0]] = np.load(row_a['spectrogram_path'])
+            X[current_batch][self.dim[0]:2 * self.dim[0]] = np.load(row_a['spectrogram_path'])
 
             if row_a['speaker_id'] == row_b['speaker_id']:
                 y[i] = 1
