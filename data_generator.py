@@ -37,7 +37,7 @@ class DataGenerator(ks.utils.Sequence):
             X[current_batch][0:self.dim[0]] = np.load(row_a['path'])
             X[current_batch][self.dim[0]:2 * self.dim[0]] = np.load(row_a['path'])
 
-            if row_a['label'] == row_b['label']:
+            if row_a['speaker_id'] == row_b['speaker_id']:
                 y[i] = 1
             else:
                 y[i] = 0

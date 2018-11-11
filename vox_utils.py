@@ -76,6 +76,8 @@ def get_dataset() -> pd.DataFrame:
         index_col=0
     )
 
+    meta.index.name = 'speaker_id'
+
     splits = pd.read_csv(
         configs['files']['vox_celeb_splits'],
         sep=' ',
@@ -83,13 +85,13 @@ def get_dataset() -> pd.DataFrame:
         header=None
     )
 
-    splits['VoxCeleb1 ID'] = splits['wav_path'].apply(lambda p: p.split('/')[0])
+    splits['speaker_id'] = splits['wav_path'].apply(lambda p: p.split('/')[0])
     splits['wav_path'] = splits.apply(
         lambda r: get_wav_path(r['split'], r['wav_path']),
         axis='columns'
     )
 
-    dataset = pd.merge(splits, meta, how='left', on='VoxCeleb1 ID', validate="m:1")
+    dataset = pd.merge(splits, meta, how='left', on='speaker_id', validate="m:1")
 
     dataset['spectrogram_path'] = dataset['wav_path'].apply(
         lambda p: os.path.join(NPY_PATH, convert_to_spectrogram_filename(p)))
