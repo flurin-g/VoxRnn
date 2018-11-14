@@ -24,8 +24,9 @@ def initialize() -> tuple:
     vox_dev_wav = os.path.join(root_dir, global_conf['files']['vox_dev_wav'])
     vox_test_wav = os.path.join(root_dir, global_conf['files']['vox_test_wav'])
     weights = os.path.join(root_dir, global_conf['files']['model_weights'])
+    vox_pairs = os.path.join(root_dir, global_conf['files']['vox_celeb_pairs'])
 
-    return npy_path, global_conf, train_conf, splits, meta, vox_dev_wav, vox_test_wav, weights
+    return npy_path, global_conf, train_conf, splits, meta, vox_dev_wav, vox_test_wav, weights, vox_pairs
 
 
-NPY_PATH, GLOBAL_CONF, TRAIN_CONF, SPLITS, META, VOX_DEV_WAV, VOX_TEST_WAV, WEIGHTS_PATH = initialize()
+NPY_PATH, GLOBAL_CONF, TRAIN_CONF, SPLITS, META, VOX_DEV_WAV, VOX_TEST_WAV, WEIGHTS_PATH, VOX_PAIRS = initialize()

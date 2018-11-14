@@ -1,15 +1,22 @@
 import os
+from io import StringIO
 
+from itertools import combinations
+from csv import writer
 import librosa as lr
 import numpy as np
 import pandas as pd
 
-from definitions import GLOBAL_CONF, NPY_PATH, VOX_DEV_WAV, VOX_TEST_WAV, SPLITS
+from definitions import GLOBAL_CONF, NPY_PATH, VOX_DEV_WAV, VOX_TEST_WAV, SPLITS, VOX_PAIRS
 
 TRAIN = 1  # in orig file + 1, but because lists are zero based...
 DEV = 2
 TEST = 3
 NUM_DATA_SETS = 2
+SAME_SPEAKER = 1
+DIFFERENT_SPEAKER = 0
+TRAIN_SET_SIZE = 950000
+DEV_SET_SIZE = 50000
 
 
 def get_path(name: str) -> str:
@@ -35,7 +42,6 @@ def load_rows(name: str) -> pd.DataFrame:
 def create_spectrogram(file_path: os.path, offset: float,
                        sampling_rate: int, sample_length: float,
                        fft_window: int, hop_length: int) -> np.ndarray:
-
     audio_range, _ = lr.load(path=file_path,
                              sr=sampling_rate,
                              mono=True,
@@ -71,3 +77,48 @@ def create_all_spectrograms():
         file_id: str = convert_to_filename(row['path'])
 
         write_to_disk(mel_spectrogram, NPY_PATH, file_id)
+
+
+def create_pairs():
+    path = get_path(SPLITS)
+    speaker_ids = pd.read_csv(path,
+                              sep="\s|/",
+                              names=['data_set', 'id', 'folder', 'filename'],
+                              usecols=['data_set', 'id'],
+                              header=None,
+                              engine="python")
+
+    utterance_path = pd.read_csv(path, sep=' ',
+                                 names=['data_set', 'path'],
+                                 usecols=['path'],
+                                 header=None)
+
+    veri_split = pd.concat([speaker_ids, utterance_path], axis=1)
+
+    train_split = veri_split[veri_split['data_set'] == TRAIN]
+    dev_split = veri_split[veri_split['data_set'] == DEV]
+
+    write_same_pairs_file(train_split,
+                          TRAIN_SET_SIZE,
+                          'same_speakers_train.csv')
+
+    write_same_pairs_file(dev_split,
+                          DEV_SET_SIZE,
+                          'same_speakers_dev.csv')
+
+
+def write_same_pairs_file(split_frame, train_set_size, csv_name):
+    grouped = split_frame.groupby('id')
+    pairs_list = list()
+    i = 0
+    for name, group in grouped:
+        for index in list(combinations(group.index, 2)):
+            pairs_list.append([SAME_SPEAKER, group.loc[index[0], 'path'], group.loc[index[1], 'path']])
+
+            i += 1
+            if i >= train_set_size / 2:
+                break
+        if i >= train_set_size / 2:
+            break
+    same_speaker_df = pd.DataFrame(data=pairs_list, columns=['y_label', 'utterance_a', 'utterance_b'])
+    same_speaker_df.to_csv(csv_name)
