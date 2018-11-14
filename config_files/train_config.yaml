@@ -4,7 +4,6 @@ input_data:
   mel_spectrogram_y: 128
   batch_size: 64
   batch_shuffle: True
-  channels: 1 # 1 = mono, 2 = stereo
 
 topology:
   blstm1_units: 128

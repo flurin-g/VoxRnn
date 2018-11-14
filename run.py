@@ -1,8 +1,10 @@
-from definitions import TRAIN_CONF, WEIGHTS_PATH, NPY_PATH
+import os
+
+from definitions import NPY_PATH
 from vox_rnn_model import train_model
-from vox_utils import get_dataset
+from utils import create_all_spectrograms
 
 if __name__ == '__main__':
-    configs = TRAIN_CONF
-    #data_splits, id_to_label, num_speakers = get_datasets(1)
-    train_model(configs, WEIGHTS_PATH)
+    if not os.listdir(NPY_PATH):
+        create_all_spectrograms()
+        print('spectrograms created')

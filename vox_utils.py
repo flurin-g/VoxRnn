@@ -100,7 +100,7 @@ def get_dataset() -> pd.DataFrame:
     for _, row in dataset.iterrows():
         wav_path = row['wav_path']
         spectrogram_path = row['spectrogram_path']
-        if row['split'] != TEST and not os.path.exists(spectrogram_path): # TODO: fix for testing
+        if False and row['split'] != TEST and not os.path.exists(spectrogram_path): # TODO: fix for testing
             mel_spectrogram = create_spectrogram(wav_path,
                                                  mel_config['offset_range'],
                                                  mel_config['sampling_rate'],

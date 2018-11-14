@@ -9,7 +9,7 @@ files:
 spectrogram:
   sampling_rate: 16000 # Hz
   sample_length: 0.4 # sec
-  offset_range: [0.1, 1.5] #sec
+  offset: 0.1 #sec
   fft_window: 1024 # samples
   hop_length: 160 # samples
 

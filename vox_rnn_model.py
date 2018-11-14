@@ -74,7 +74,7 @@ def build_model(input_dim: list, configs: dict, output_layer: str = 'layer8') ->
     num_units = topology['dense3_units']
     layers['layer7'] = layer7 = ks.layers.Dense(num_units)(layer6)
 
-    layers['layer8'] = layer8 = ks.layers.Dense(num_units, activation='softmax')(layer6)
+    layers['layer8'] = layer8 = ks.layers.Dense(num_units, activation='softmax')(layer7)
 
     return ks.Model(inputs=X_input, outputs=layers[output_layer])
 
@@ -122,11 +122,9 @@ def train_model(configs: dict, weights_path: str):
                                          input_data['batch_shuffle'])
 
     siamese_net = build_siam(configs)
-
+    # TODO: set epochs and implement tensorboard
     siamese_net.fit_generator(generator=training_generator,
-                              validation_data=validation_generator,
-                              use_multiprocessing=True,
-                              workers=cpu_cores)
+                              validation_data=validation_generator)
 
     siamese_net.save_weights(weights_path, overwrite=False)
 

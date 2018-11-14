@@ -21,11 +21,11 @@ def initialize() -> tuple:
     npy_path = os.path.join(root_dir, global_conf['files']['numpy'])
     splits = os.path.join(root_dir, global_conf['files']['vox_celeb_splits'])
     meta = os.path.join(root_dir, global_conf['files']['vox_celeb_meta'])
-    dev_path = os.path.join(root_dir, global_conf['files']['vox_dev_wav'])
     vox_dev_wav = os.path.join(root_dir, global_conf['files']['vox_dev_wav'])
+    vox_test_wav = os.path.join(root_dir, global_conf['files']['vox_test_wav'])
     weights = os.path.join(root_dir, global_conf['files']['model_weights'])
 
-    return npy_path, global_conf, train_conf, splits, meta, dev_path, vox_dev_wav, weights
+    return npy_path, global_conf, train_conf, splits, meta, vox_dev_wav, vox_test_wav, weights
 
 
-NPY_PATH, GLOBAL_CONF, TRAIN_CONF, SPLITS, META, DEV_PATH, VOX_DEV_WAV, WEIGHTS_PATH = initialize()
+NPY_PATH, GLOBAL_CONF, TRAIN_CONF, SPLITS, META, VOX_DEV_WAV, VOX_TEST_WAV, WEIGHTS_PATH = initialize()
