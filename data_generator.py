@@ -28,6 +28,7 @@ class DataGenerator(ks.utils.Sequence):
         batch_indices = self.pair_indices[current_batch * self.batch_size:(current_batch + 1) * self.batch_size]
 
         # init np array for pairs and corresponding labels
+        # TODO: clean up np.concat, rename dim
         X = np.empty((self.batch_size, 2 * self.dim[0], self.dim[1]))
         y = np.empty(self.batch_size, dtype=int)
 
