@@ -1,8 +1,6 @@
 import os
-from io import StringIO
 
 from itertools import combinations
-from csv import writer
 import librosa as lr
 import numpy as np
 import pandas as pd
@@ -17,6 +15,7 @@ SAME_SPEAKER = 1
 DIFFERENT_SPEAKER = 0
 TRAIN_SET_SIZE = 950000
 DEV_SET_SIZE = 50000
+NUM_PER_POI = 100
 
 
 def get_path(name: str) -> str:
@@ -100,23 +99,27 @@ def create_pairs():
 
     write_same_pairs_file(train_split,
                           TRAIN_SET_SIZE,
+                          NUM_PER_POI,
                           'same_speakers_train.csv')
 
     write_same_pairs_file(dev_split,
                           DEV_SET_SIZE,
+                          NUM_PER_POI,
                           'same_speakers_dev.csv')
 
 
-def write_same_pairs_file(split_frame, train_set_size, csv_name):
+def write_same_pairs_file(split_frame, train_set_size, num_per_poi, csv_name):
     grouped = split_frame.groupby('id')
     pairs_list = list()
     i = 0
     for name, group in grouped:
+        j = 0
         for index in list(combinations(group.index, 2)):
             pairs_list.append([SAME_SPEAKER, group.loc[index[0], 'path'], group.loc[index[1], 'path']])
 
             i += 1
-            if i >= train_set_size / 2:
+            j += 1
+            if j >= num_per_poi:
                 break
         if i >= train_set_size / 2:
             break
