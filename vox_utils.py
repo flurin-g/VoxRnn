@@ -25,15 +25,11 @@ def get_wav_path(split, path):
         return get_path(os.path.join(files['vox_dev_wav'], path))
 
 
-def convert_to_spectrogram_filename(path_name: str) -> str:
-    return path_name.replace('/', '-').replace('.', '-') + '.npy'
+def persist_spectrogram(mel_spectrogram: np.ndarray, wav_path: str):
+    np.save(wav_path, mel_spectrogram, allow_pickle=False)
 
 
-def persist_spectrogram(mel_spectrogram: np.ndarray, spectrogram_path: str):
-    np.save(spectrogram_path, mel_spectrogram, allow_pickle=False)
-
-
-def create_spectrogram(file_id: str, offset_range: list,
+def create_spectrogram(wav_path: str, offset_range: list,
                        sampling_rate: int, sample_length: float,
                        fft_window: int, hop_length: int, channels: int = 1) -> np.ndarray:
     offset = np.random.uniform(offset_range[0], offset_range[1])
@@ -43,7 +39,7 @@ def create_spectrogram(file_id: str, offset_range: list,
     else:
         mono = False
 
-    audio_range, _ = lr.load(path=file_id,
+    audio_range, _ = lr.load(path=wav_path,
                              sr=sampling_rate,
                              mono=mono,
                              offset=offset,
@@ -93,8 +89,7 @@ def get_dataset(build_spectrograms=False) -> pd.DataFrame:
 
     dataset = pd.merge(splits, meta, how='left', on='speaker_id', validate="m:1")
 
-    dataset['spectrogram_path'] = dataset['wav_path'].apply(
-        lambda p: os.path.join(NPY_PATH, convert_to_spectrogram_filename(p)))
+    dataset['spectrogram_path'] = dataset['wav_path'].apply(lambda p: p + '.npy')
 
     mel_config = configs['spectrogram']
     if build_spectrograms:
