@@ -54,7 +54,7 @@ def dynamic_range_compression(spectrogram):
     return np.log10(1 + np.multiply(10000, spectrogram))
 
 
-def get_dataset() -> pd.DataFrame:
+def get_dataset(build_spectrograms=False) -> pd.DataFrame:
     """
     :return: DataFrame containing dataset with metadata and filepaths
     """
@@ -71,34 +71,34 @@ def get_dataset() -> pd.DataFrame:
     splits = pd.read_csv(
         configs['files']['vox_celeb_splits'],
         sep=' ',
-        names=['split', 'wav_path'],
+        names=['split', 'path'],
         header=None
     )
 
-    splits['speaker_id'] = splits['wav_path'].apply(lambda p: p.split('/')[0])
+    splits['speaker_id'] = splits['path'].apply(lambda p: p.split('/')[0])
     splits['wav_path'] = splits.apply(
-        lambda r: get_wav_path(r['split'], r['wav_path']),
+        lambda r: get_wav_path(r['split'], r['path']),
         axis='columns'
     )
 
     dataset = pd.merge(splits, meta, how='left', on='speaker_id', validate="m:1")
 
-    dataset['spectrogram_path'] = dataset['wav_path'].apply(
-        lambda p: os.path.join(NPY_PATH, convert_to_spectrogram_filename(p)))
+    dataset['spectrogram_path'] = dataset['wav_path'].apply(lambda p: p + '.npy')
 
     mel_config = configs['spectrogram']
-    for _, row in dataset.iterrows():
-        wav_path = row['wav_path']
-        spectrogram_path = row['spectrogram_path']
-        if False and row['split'] != TEST and not os.path.exists(spectrogram_path): # TODO: fix for testing
-            mel_spectrogram = create_spectrogram(wav_path,
-                                                 mel_config['offset_range'],
-                                                 mel_config['sampling_rate'],
-                                                 mel_config['sample_length'],
-                                                 mel_config['fft_window'],
-                                                 mel_config['hop_length'])
+    if build_spectrograms:
+        for _, row in dataset.iterrows():
+            wav_path = row['wav_path']
+            spectrogram_path = row['spectrogram_path']
+            if row['split'] != TEST and not os.path.exists(spectrogram_path): # TODO: fix for testing
+                mel_spectrogram = create_spectrogram(wav_path,
+                                                     mel_config['offset'],
+                                                     mel_config['sampling_rate'],
+                                                     mel_config['sample_length'],
+                                                     mel_config['fft_window'],
+                                                     mel_config['hop_length'])
 
-            persist_spectrogram(mel_spectrogram, spectrogram_path)
+                persist_spectrogram(mel_spectrogram, spectrogram_path)
 
     return dataset
 
