@@ -5,7 +5,7 @@ files:
  vox_celeb_meta: Data/VoxCeleb1/vox1_meta.csv
  vox_dev_wav: Data/VoxCeleb1/vox1_dev_wav/wav
  vox_test_wav: Data/VoxCeleb1/vox1_test_wav/wav
- model_weights: Data/model_weights
+ model_weights: Data/model_weights/siamese_model.h5
 
 spectrogram:
   sampling_rate: 16000 # Hz

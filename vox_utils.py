@@ -33,19 +33,12 @@ def persist_spectrogram(mel_spectrogram: np.ndarray, spectrogram_path: str):
     np.save(spectrogram_path, mel_spectrogram, allow_pickle=False)
 
 
-def create_spectrogram(file_id: str, offset_range: list,
+def create_spectrogram(file_path: os.path, offset: float,
                        sampling_rate: int, sample_length: float,
-                       fft_window: int, hop_length: int, channels: int = 1) -> np.ndarray:
-    offset = np.random.uniform(offset_range[0], offset_range[1])
-
-    if channels == 1:
-        mono = True
-    else:
-        mono = False
-
-    audio_range, _ = lr.load(path=file_id,
+                       fft_window: int, hop_length: int) -> np.ndarray:
+    audio_range, _ = lr.load(path=file_path,
                              sr=sampling_rate,
-                             mono=mono,
+                             mono=True,
                              offset=offset,
                              duration=sample_length)
 

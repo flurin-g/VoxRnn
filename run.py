@@ -1,6 +1,6 @@
 import os
 
-from definitions import NPY_PATH, COF
+from definitions import NPY_PATH, TRAIN_CONF, WEIGHTS_PATH
 from vox_rnn_model import train_model
 from utils import create_all_spectrograms, create_pairs
 
@@ -9,5 +9,4 @@ if __name__ == '__main__':
         create_all_spectrograms()
         print('spectrograms created')
 
-
-        def train_model(configs: dict, weights_path: str)
+    train_model()

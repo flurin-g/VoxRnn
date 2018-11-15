@@ -1,11 +1,15 @@
 import itertools
 import math
+import os
 import random
 
 import pandas as pd
 
 import numpy as np
 import keras as ks
+
+from definitions import NPY_PATH
+
 
 class DataGenerator(ks.utils.Sequence):
     'Generates data for Keras'
@@ -16,35 +20,36 @@ class DataGenerator(ks.utils.Sequence):
         self.shuffle = shuffle
         self.mode = shuffle
         self.on_epoch_end()
-        self.dataset = dataset
-        self.pair_indices = list(itertools.combinations(range(len(dataset)), 2))
+        self.dataset = pd.read_csv('/Users/flurin/repos/hs18/pa/VoxRnn/Data/same_speakers_dev.csv',
+                                   nrows=100)
+        self.indices = list(range(len(self.dataset)))
 
     def __len__(self):
-        return int(math.floor(len(self.pair_indices) / self.batch_size))
+        return int(math.floor(len(self.indices) / self.batch_size))
 
     def __getitem__(self, current_batch):
         'Generate one batch of data'
-        # batchsized list of indices of pairs
-        batch_indices = self.pair_indices[current_batch * self.batch_size:(current_batch + 1) * self.batch_size]
-
         # init np array for pairs and corresponding labels
         # TODO: clean up np.concat, rename dim
-        X = np.empty((self.batch_size, 2 * self.dim[0], self.dim[1]))
+        X_left = np.empty((self.batch_size, self.dim[0], self.dim[1]))
+        X_right = np.empty((self.batch_size, self.dim[0], self.dim[1]))
         y = np.empty(self.batch_size, dtype=int)
 
-        for i, pair in enumerate(batch_indices):
-            row_a = self.dataset.loc[pair[0]]
-            row_b = self.dataset.loc[pair[1]]
-            X[current_batch][0:self.dim[0]] = np.load(row_a['spectrogram_path'])
-            X[current_batch][self.dim[0]:2 * self.dim[0]] = np.load(row_b['spectrogram_path'])
+        for i in range(self.batch_size):
+            X_left[i] = np.load(self.file_name_temp(self.dataset.loc[self.indices[i], 'utterance_a']))
+            X_right[i] = np.load(self.file_name_temp(self.dataset.loc[self.indices[i], 'utterance_b']))
 
-            if row_a['speaker_id'] == row_b['speaker_id']:
+            if self.dataset.loc[i, 'y_label']:
                 y[i] = 1
             else:
                 y[i] = 0
 
-        return X, y
+        return [[X_left, X_right], y]
 
     def on_epoch_end(self):
         if self.mode == 'shuffle':
-            random.shuffle(self.pair_indices)
+            random.shuffle(self.indices)
+
+    @staticmethod
+    def file_name_temp(file_name_raw: str):
+        return os.path.join(NPY_PATH, file_name_raw.replace('/', '-').replace('.', '-')) + ".npy"

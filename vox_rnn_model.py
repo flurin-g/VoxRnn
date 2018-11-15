@@ -6,6 +6,7 @@ import keras as ks
 
 from data_generator import DataGenerator
 from vox_utils import get_dataset
+from definitions import TRAIN_CONF, WEIGHTS_PATH, NPY_PATH
 
 
 def build_optimizer(configs: dict):
@@ -102,14 +103,14 @@ def build_siam(configs):
     return model
 
 
-def train_model(configs: dict, weights_path: str):
+def train_model(configs: dict = TRAIN_CONF, weights_path: str = WEIGHTS_PATH):
     cpu_cores = multiprocessing.cpu_count()
 
     input_data = configs['input_data']
     dim = (input_data['mel_spectrogram_x'],
            input_data['mel_spectrogram_y'])
 
-    dataset = get_dataset()
+    dataset = None
 
     training_generator = DataGenerator(dataset,
                                        dim,
