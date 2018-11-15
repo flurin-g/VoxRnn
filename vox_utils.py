@@ -82,6 +82,7 @@ def get_dataset() -> pd.DataFrame:
     )
 
     dataset = pd.merge(splits, meta, how='left', on='speaker_id', validate="m:1")
+    dataset.set_index('path', inplace=True)
 
     dataset['spectrogram_path'] = dataset['wav_path'].apply(
         lambda p: os.path.join(NPY_PATH, convert_to_spectrogram_filename(p)))
