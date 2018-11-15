@@ -25,12 +25,9 @@ def get_wav_path(split, path):
         return get_path(os.path.join(files['vox_dev_wav'], path))
 
 
-def convert_to_spectrogram_filename(path_name: str) -> str:
-    return path_name.replace('/', '-').replace('.', '-') + '.npy'
+def persist_spectrogram(mel_spectrogram: np.ndarray, wav_path: str):
+    np.save(wav_path, mel_spectrogram, allow_pickle=False)
 
-
-def persist_spectrogram(mel_spectrogram: np.ndarray, spectrogram_path: str):
-    np.save(spectrogram_path, mel_spectrogram, allow_pickle=False)
 
 
 def create_spectrogram(file_path: os.path, offset: float,
