@@ -22,4 +22,4 @@ Data/VoxCeleb1/vox1_test_wav/*
 # File-based project format
 **.iws
 
-
+*.h5
