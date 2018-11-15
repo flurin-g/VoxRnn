@@ -6,12 +6,15 @@ import keras as ks
 
 from data_generator import DataGenerator
 from vox_utils import get_dataset
-from definitions import TRAIN_CONF, WEIGHTS_PATH, NPY_PATH
+from definitions import TRAIN_CONF, WEIGHTS_PATH
+
+INPUT_DIMS = [TRAIN_CONF['input_data']['mel_spectrogram_x'],
+              TRAIN_CONF['input_data']['mel_spectrogram_y']]
 
 
-def build_optimizer(configs: dict):
+def build_optimizer():
     optimizer = None
-    p = configs['topology']['optimizer']
+    p = TRAIN_CONF['topology']['optimizer']
     if p['type'] == 'adam':
         optimizer = ks.optimizers.Adam(p['learning_rate'],
                                        p['beta_1'],
@@ -38,31 +41,34 @@ def kb_hinge_loss(y_true, y_pred):
     y_true: binary label, 1 = same speaker
     y_pred: output of siamese net i.e. kullback-leibler distribution
     """
-    hinge = ks.backend.maximum(1. - y_pred, 0.)
+    MARGIN = 3.
+    hinge = ks.backend.maximum(MARGIN - y_pred, 0.)
     return y_true * y_pred + (1 - y_true) * hinge
 
 
-def create_lstm(units: int, gpu: bool):
+def create_lstm(units: int, gpu: bool, is_sequence: bool=True):
     if gpu:
-        return ks.layers.CuDNNLSTM(units, return_sequences=True)
+        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence)
     else:
-        return ks.layers.LSTM(units, return_sequences=True)
+        return ks.layers.LSTM(units, return_sequences=is_sequence)
 
 
-def build_model(input_dim: list, configs: dict, output_layer: str = 'layer8') -> ks.Model:
-    topology = configs['topology']
+def build_model(output_layer: str = 'layer8') -> ks.Model:
+    topology = TRAIN_CONF['topology']
 
     is_gpu = tf.test.is_gpu_available(cuda_only=True)
 
     layers = dict()
 
-    X_input = ks.Input(shape=input_dim)
+    X_input = ks.Input(shape=INPUT_DIMS)
 
     layer1 = ks.layers.Bidirectional(create_lstm(topology['blstm1_units'], is_gpu))(X_input)
 
     layer2 = ks.layers.Dropout(topology['dropout1'])(layer1)
 
-    layers['layer3'] = layer3 = ks.layers.Bidirectional(create_lstm(topology['blstm2_units'], is_gpu))(layer2)
+    layers['layer3'] = layer3 = ks.layers.Bidirectional(create_lstm(topology['blstm2_units'],
+                                                                    is_gpu,
+                                                                    is_sequence=False))(layer2)
 
     num_units = topology['dense1_units']
     layers['layer4'] = layer4 = ks.layers.Dense(num_units)(layer3)
@@ -80,16 +86,11 @@ def build_model(input_dim: list, configs: dict, output_layer: str = 'layer8') ->
     return ks.Model(inputs=X_input, outputs=layers[output_layer])
 
 
-def build_siam(configs):
-    input_data = configs['input_data']
+def build_siam():
+    base_network = build_model()
 
-    input_dim = [input_data['mel_spectrogram_x'],
-                 input_data['mel_spectrogram_y']]
-
-    base_network = build_model(input_dim, configs)
-
-    input_a = ks.Input(shape=input_dim)
-    input_b = ks.Input(shape=input_dim)
+    input_a = ks.Input(shape=INPUT_DIMS)
+    input_b = ks.Input(shape=INPUT_DIMS)
 
     model_a = base_network(input_a)
     model_b = base_network(input_b)
@@ -98,49 +99,40 @@ def build_siam(configs):
                                 output_shape=kullback_leibler_shape)([model_a, model_b])
 
     model = ks.models.Model([input_a, input_b], distance)
-    adam = build_optimizer(configs)
+    adam = build_optimizer()
     model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
     return model
 
 
-def train_model(configs: dict = TRAIN_CONF, weights_path: str = WEIGHTS_PATH):
+def train_model(weights_path: str = WEIGHTS_PATH):
     cpu_cores = multiprocessing.cpu_count()
 
-    input_data = configs['input_data']
-    dim = (input_data['mel_spectrogram_x'],
-           input_data['mel_spectrogram_y'])
+    input_data = TRAIN_CONF['input_data']
 
     dataset = None
 
     training_generator = DataGenerator(dataset,
-                                       dim,
+                                       INPUT_DIMS,
                                        input_data['batch_size'],
                                        input_data['batch_shuffle'])
 
     validation_generator = DataGenerator(dataset,
-                                         dim,
+                                         INPUT_DIMS,
                                          input_data['batch_size'],
                                          input_data['batch_shuffle'])
 
-    siamese_net = build_siam(configs)
+    siamese_net = build_siam()
     # TODO: set epochs and implement tensorboard
     siamese_net.fit_generator(generator=training_generator,
                               validation_data=validation_generator)
 
-    siamese_net.save_weights(weights_path, overwrite=False)
+    siamese_net.save_weights(weights_path, overwrite=True)
 
 
-def build_embedding_extractor_net(configs: dict, output_layer: str, path: str):
+def build_embedding_extractor_net(output_layer: str):
     pass
     # create model with output layer3/4/6/7 to extract embeddings
-    input_data = configs['input_data']
-
-    input_dim = [input_data['mel_spectrogram_x'],
-                 input_data['mel_spectrogram_y']]
-
-    input_a = ks.Input(shape=input_dim)
-
-    model = build_model(input_a, configs, output_layer)
+    model = build_model(output_layer)
 
     # load model
-    model.load_weights(path, by_name=True)
+    model.load_weights(WEIGHTS_PATH, by_name=True)
