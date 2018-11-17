@@ -34,14 +34,14 @@ class DataGenerator(ks.utils.Sequence):
         y = np.empty(self.batch_size, dtype=np.uint8)
 
         for i in range(batch_start, batch_end, ROWS_PER_LOOP):
-            pos_1 = df.sample(random_state=self.rng)
-            pos_2 = df[(df.speaker_id == pos_1.speaker_id) & (df.path != pos_1.path)].sample(random_state=self.rng)
+            pos_1 = df.sample(random_state=self.rng).iloc[0]
+            pos_2 = df[(df.speaker_id == pos_1.speaker_id) & (df.path != pos_1.path)].sample(random_state=self.rng).iloc[0]
 
             X_left[i] = np.load(pos_1.spectrogram_path)
             X_right[i] = np.load(pos_2.spectrogram_path)
 
-            neg_1 = df.sample(random_state=self.rng)
-            neg_2 = df[(df.Gender == neg_1.Gender) & (df.Nationality == neg_1.Nationality) & (df.speaker_id != neg_1.speaker_id)].sample(random_state=self.rng)
+            neg_1 = df.sample(random_state=self.rng).iloc[0]
+            neg_2 = df[(df.Gender == neg_1.Gender) & (df.Nationality == neg_1.Nationality) & (df.speaker_id != neg_1.speaker_id)].sample(random_state=self.rng).iloc[0]
             X_left[i+1] = np.load(neg_1.spectrogram_path)
             X_right[i+1] = np.load(neg_2.spectrogram_path)
 
