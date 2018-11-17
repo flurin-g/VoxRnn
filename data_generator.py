@@ -19,7 +19,6 @@ class DataGenerator(ks.utils.Sequence):
         self.dim = dim
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.mode = shuffle
         self.on_epoch_end()
         self.dataset_same = pd.read_csv('/Users/flurin/repos/hs18/pa/VoxRnn/Data/same_speakers_dev.csv',
                                         nrows=100)
@@ -54,7 +53,7 @@ class DataGenerator(ks.utils.Sequence):
         return [[X_left, X_right], y]
 
     def on_epoch_end(self):
-        if self.mode == 'shuffle':
+        if self.shuffle:
             random.shuffle(self.indices)
 
     @staticmethod
