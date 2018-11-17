@@ -4,7 +4,7 @@ input_data:
   mel_spectrogram_y: 128
   batch_size: 64
   batch_shuffle: True
-  epochs: 10
+  epochs: 30
 
 topology:
   blstm1_units: 128
@@ -13,13 +13,13 @@ topology:
 
   blstm2_units: 128
 
-  dense1_units: 400 # timit setting: 10 * 40 speakers
+  dense1_units: 512
 
   dropout2: 0.25
 
-  dense2_units: 200 # timit setting: 5 * 40 speakers
+  dense2_units: 256 # timit setting: 5 * 40 speakers
 
-  dense3_units: 40 # timit setting: 40 speakers
+  dense3_units: 128 # timit setting: 40 speakers
 
 
   optimizer:
