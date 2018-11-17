@@ -24,22 +24,26 @@ def build_optimizer():
     return optimizer
 
 
-def euclidean_distance(vects):
+def kullback_leibler_divergence(vects):
     x, y = vects
-    return ks.backend.sqrt(ks.backend.sum(ks.backend.square(x - y), axis=1, keepdims=True))
+    x = ks.backend.clip(x, ks.backend.epsilon(), 1)
+    y = ks.backend.clip(y, ks.backend.epsilon(), 1)
+    return ks.backend.sum(x * ks.backend.log(x / y), axis=-1)
 
 
-def eucl_dist_output_shape(shapes):
+def kullback_leibler_shape(shapes):
     shape1, shape2 = shapes
-    return shape1
+    return shape1[0], 1
 
 
-def contrastive_loss(y_true, y_pred):
-    '''Contrastive loss from Hadsell-et-al.'06
-	http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
-	'''
-    margin = 1
-    return ks.backend.mean(y_true * ks.backend.square(y_pred) + (1 - y_true) * ks.backend.square(ks.backend.maximum(margin - y_pred, 0)))
+def kb_hinge_loss(y_true, y_pred):
+    """
+    y_true: binary label, 1 = same speaker
+    y_pred: output of siamese net i.e. kullback-leibler distribution
+    """
+    MARGIN = 3.
+    hinge = ks.backend.mean(ks.backend.square(ks.backend.maximum(MARGIN - y_true * y_pred, 0.)), axis=-1)
+    return y_true * y_pred + (1 - y_true) * hinge
 
 
 def create_lstm(units: int, gpu: bool, is_sequence: bool = True):
@@ -91,18 +95,16 @@ def build_siam():
     processed_a = base_network(input_a)
     processed_b = base_network(input_b)
 
-    distance = ks.layers.Lambda(euclidean_distance,
-                                output_shape=eucl_dist_output_shape)([processed_a, processed_b])
+    distance = ks.layers.Lambda(kullback_leibler_divergence,
+                                output_shape=kullback_leibler_shape)([processed_a, processed_b])
 
     model = ks.Model(inputs=[input_a, input_b], outputs=distance)
     adam = build_optimizer()
-    model.compile(loss=contrastive_loss, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
     return model
 
 
 def train_model(weights_path: str = WEIGHTS_PATH):
-    cpu_cores = multiprocessing.cpu_count()
-
     input_data = TRAIN_CONF['input_data']
 
     dataset = None
@@ -110,7 +112,7 @@ def train_model(weights_path: str = WEIGHTS_PATH):
     training_generator = DataGenerator(dataset,
                                        INPUT_DIMS,
                                        input_data['batch_size'],
-                                       input_data['batch_shuffle'])
+                                       input_data['batch_shuffle'], )
 
     validation_generator = DataGenerator(dataset,
                                          INPUT_DIMS,
@@ -122,7 +124,7 @@ def train_model(weights_path: str = WEIGHTS_PATH):
     siamese_net.summary()
     # TODO: set epochs and implement tensorboard
     siamese_net.fit_generator(generator=training_generator,
-                              steps_per_epoch=input_data['epochs'],
+                              epochs=input_data['epochs'],
                               validation_data=validation_generator)
 
     siamese_net.save_weights(weights_path, overwrite=True)
