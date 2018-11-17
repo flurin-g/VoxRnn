@@ -48,9 +48,9 @@ def kb_hinge_loss(y_true, y_pred):
 
 def create_lstm(units: int, gpu: bool, is_sequence: bool=True):
     if gpu:
-        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence)
+        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS)
     else:
-        return ks.layers.LSTM(units, return_sequences=is_sequence)
+        return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS)
 
 
 def build_model(output_layer: str = 'layer8') -> ks.Model:
@@ -58,47 +58,46 @@ def build_model(output_layer: str = 'layer8') -> ks.Model:
 
     is_gpu = tf.test.is_gpu_available(cuda_only=True)
 
-    layers = dict()
+    model = ks.Sequential()
 
-    X_input = ks.Input(shape=INPUT_DIMS)
+    model.add(ks.layers.Bidirectional(create_lstm(topology['blstm1_units'], is_gpu),
+                                      input_shape=INPUT_DIMS))
 
-    layer1 = ks.layers.Bidirectional(create_lstm(topology['blstm1_units'], is_gpu))(X_input)
+    model.add(ks.layers.Dropout(topology['dropout1']))
 
-    layer2 = ks.layers.Dropout(topology['dropout1'])(layer1)
-
-    layers['layer3'] = layer3 = ks.layers.Bidirectional(create_lstm(topology['blstm2_units'],
-                                                                    is_gpu,
-                                                                    is_sequence=False))(layer2)
+    model.add(ks.layers.Bidirectional(create_lstm(topology['blstm2_units'],
+                                                  is_gpu,
+                                                  is_sequence=False)))
 
     num_units = topology['dense1_units']
-    layers['layer4'] = layer4 = ks.layers.Dense(num_units)(layer3)
+    model.add(ks.layers.Dense(num_units))
 
-    layer5 = ks.layers.Dropout(topology['dropout2'])(layer4)
+    model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
-    layers['layer6'] = layer6 = ks.layers.Dense(num_units)(layer5)
+    model.add(ks.layers.Dense(num_units))
 
     num_units = topology['dense3_units']
-    layers['layer7'] = layer7 = ks.layers.Dense(num_units)(layer6)
+    model.add(ks.layers.Dense(num_units))
 
-    layers['layer8'] = layer8 = ks.layers.Dense(num_units, activation='softmax')(layer7)
+    model.add(ks.layers.Dense(num_units, activation='softmax'))
 
-    return ks.Model(inputs=X_input, outputs=layers[output_layer])
+    return model
 
-
+# ks.Model(inputs=X_input, outputs=layers[output_layer])
 def build_siam():
     base_network = build_model()
 
     input_a = ks.Input(shape=INPUT_DIMS)
     input_b = ks.Input(shape=INPUT_DIMS)
 
-    model_a = base_network(input_a)
-    model_b = base_network(input_b)
+    processed_a = base_network(input_a)
+    processed_b = base_network(input_b)
 
     distance = ks.layers.Lambda(kullback_leibler_divergence,
-                                output_shape=kullback_leibler_shape)([model_a, model_b])
+                                output_shape=kullback_leibler_shape)([processed_a, processed_b])
 
-    model = ks.models.Model([input_a, input_b], distance)
+    model = ks.Model(inputs=[input_a, input_b], outputs=distance)
     adam = build_optimizer()
     model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
     return model
@@ -122,8 +121,11 @@ def train_model(weights_path: str = WEIGHTS_PATH):
                                          input_data['batch_shuffle'])
 
     siamese_net = build_siam()
+
+    siamese_net.summary()
     # TODO: set epochs and implement tensorboard
     siamese_net.fit_generator(generator=training_generator,
+                              steps_per_epoch=input_data['epochs'],
                               validation_data=validation_generator)
 
     siamese_net.save_weights(weights_path, overwrite=True)

@@ -4,6 +4,7 @@ input_data:
   mel_spectrogram_y: 128
   batch_size: 64
   batch_shuffle: True
+  epochs: 10
 
 topology:
   blstm1_units: 128
