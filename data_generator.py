@@ -51,5 +51,4 @@ class DataGenerator(ks.utils.Sequence):
         return [[X_left, X_right], y]
 
     def on_epoch_end(self):
-        if self.shuffle:
-            self.dataset.reindex
+        pass

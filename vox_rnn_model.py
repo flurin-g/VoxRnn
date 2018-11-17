@@ -5,7 +5,7 @@ import tensorflow as tf
 import keras as ks
 
 from data_generator import DataGenerator
-from vox_utils import get_dataset
+from vox_utils import get_dataset, get_all_sets
 from definitions import TRAIN_CONF, WEIGHTS_PATH
 
 INPUT_DIMS = [TRAIN_CONF['input_data']['mel_spectrogram_x'],
@@ -53,7 +53,7 @@ def create_lstm(units: int, gpu: bool, is_sequence: bool = True):
         return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS)
 
 
-def build_model(output_layer: str = 'layer8') -> ks.Model:
+def build_model(mode: str = 'train_pairs') -> ks.Model:
     topology = TRAIN_CONF['topology']
 
     is_gpu = tf.test.is_gpu_available(cuda_only=True)
@@ -71,6 +71,9 @@ def build_model(output_layer: str = 'layer8') -> ks.Model:
 
     num_units = topology['dense1_units']
     model.add(ks.layers.Dense(num_units))
+
+    if mode == 'embedding_extraction':
+        return model
 
     model.add(ks.layers.Dropout(topology['dropout2']))
 
@@ -106,15 +109,14 @@ def build_siam():
 
 def train_model(weights_path: str = WEIGHTS_PATH):
     input_data = TRAIN_CONF['input_data']
+    train_set, dev_set, test_set = get_all_sets(True)
 
-    dataset = None
-
-    training_generator = DataGenerator(dataset,
+    training_generator = DataGenerator(train_set,
                                        INPUT_DIMS,
                                        input_data['batch_size'],
-                                       input_data['batch_shuffle'], )
+                                       input_data['batch_shuffle'])
 
-    validation_generator = DataGenerator(dataset,
+    validation_generator = DataGenerator(dev_set,
                                          INPUT_DIMS,
                                          input_data['batch_size'],
                                          input_data['batch_shuffle'])
@@ -130,10 +132,17 @@ def train_model(weights_path: str = WEIGHTS_PATH):
     siamese_net.save_weights(weights_path, overwrite=True)
 
 
-def build_embedding_extractor_net(output_layer: str):
-    pass
-    # create model with output layer3/4/6/7 to extract embeddings
-    model = build_model(output_layer)
+def build_embedding_extractor_net():
+    base_network = build_model('embedding_extraction')
 
-    # load model
-    model.load_weights(WEIGHTS_PATH, by_name=True)
+    input_layer = ks.Input(shape=INPUT_DIMS)
+
+    processed = base_network(input_layer)
+
+    adam = build_optimizer()
+
+    processed.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
+
+    processed.load_weights(WEIGHTS_PATH, by_name=True)
+
+    return processed
