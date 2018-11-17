@@ -13,7 +13,7 @@ class DataGenerator(ks.utils.Sequence):
 
     def __init__(self, dataset: pd.DataFrame, dim: list, batch_size: int, shuffle: bool):
         self.rng = np.random.RandomState(1)
-        self.dataset = dataset[dataset.split != 3]
+        self.dataset = dataset
         self.dim = dim
         self.batch_size = batch_size
         self.shuffle = shuffle
@@ -35,7 +35,7 @@ class DataGenerator(ks.utils.Sequence):
 
         for i in range(batch_start, batch_end, ROWS_PER_LOOP):
             pos_1 = df.sample(random_state=self.rng)
-            pos_2 = df[(df.speaker_id == neg_1.speaker_id) & (df.path != pos_1.path)].sample(random_state=self.rng)
+            pos_2 = df[(df.speaker_id == pos_1.speaker_id) & (df.path != pos_1.path)].sample(random_state=self.rng)
 
             X_left[i] = np.load(pos_1.spectrogram_path)
             X_right[i] = np.load(pos_2.spectrogram_path)
@@ -49,3 +49,7 @@ class DataGenerator(ks.utils.Sequence):
             y[i+1] = 0
 
         return [[X_left, X_right], y]
+
+    def on_epoch_end(self):
+        if self.shuffle:
+            self.dataset.reindex

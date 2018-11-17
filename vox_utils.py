@@ -4,7 +4,7 @@ import librosa as lr
 import numpy as np
 import pandas as pd
 
-from definitions import GLOBAL_CONF, NPY_PATH
+from definitions import GLOBAL_CONF
 
 TRAIN = 1
 DEV = 2
@@ -90,7 +90,7 @@ def get_dataset(build_spectrograms=False) -> pd.DataFrame:
         for _, row in dataset.iterrows():
             wav_path = row['wav_path']
             spectrogram_path = row['spectrogram_path']
-            if row['split'] != TEST and not os.path.exists(spectrogram_path): # TODO: fix for testing
+            if not os.path.exists(spectrogram_path):
                 mel_spectrogram = create_spectrogram(wav_path,
                                                      mel_config['offset'],
                                                      mel_config['sampling_rate'],
@@ -102,4 +102,36 @@ def get_dataset(build_spectrograms=False) -> pd.DataFrame:
 
     return dataset
 
+def get_train_set(build_spectrograms=False) -> pd.DataFrame:
+    """
+    :return: DataFrame containing train data with metadata and filepaths
+    """
 
+    return get_all_sets(build_spectrograms)[0]
+
+def get_dev_set(build_spectrograms=False) -> pd.DataFrame:
+    """
+    :return: DataFrame containing dev data with metadata and filepaths
+    """
+    return get_all_sets(build_spectrograms)[1]
+
+def get_test_set(build_spectrograms=False) -> pd.DataFrame:
+    """
+    :return: DataFrame containing test data with metadata and filepaths
+    """
+    df = get_dataset(build_spectrograms)
+
+    return get_all_sets(build_spectrograms)[2]
+
+def get_all_sets(build_spectrograms=False) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+    """
+    :return: DataFrame containing all datasets with metadata and filepaths
+    """
+    df = get_dataset(build_spectrograms)
+    e_selector = df['VGGFace1 ID'].apply(lambda x: x[0] == 'E')
+
+    train_set = df[(df.split != TEST) & e_selector]
+    dev_set = df[(df.split != TEST) & ~e_selector]
+    test_set = df[(df.split != TEST)]
+
+    return train_set, dev_set, test_set
