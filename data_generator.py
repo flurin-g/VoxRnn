@@ -41,7 +41,7 @@ class DataGenerator(ks.utils.Sequence):
             X_right[i] = np.load(pos_2.spectrogram_path)
 
             neg_1 = df.sample(random_state=self.rng)
-            neg_2 = df[(df.Gender == neg_1.Gender) & (df.Nationality == neg_1.Nationality) & (df.speaker_id != neg_1.speaker_id)]
+            neg_2 = df[(df.Gender == neg_1.Gender) & (df.Nationality == neg_1.Nationality) & (df.speaker_id != neg_1.speaker_id)].sample(random_state=self.rng)
             X_left[i+1] = np.load(neg_1.spectrogram_path)
             X_right[i+1] = np.load(neg_2.spectrogram_path)
 
