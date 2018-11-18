@@ -13,6 +13,9 @@ __pychache__
 # idea folder
 **/.idea
 
+# vscode folder
+**/.vscode
+
 # wav and binary files
 Data/npy_spect/*
 Data/VoxCeleb1/vox1_dev_wav/*
