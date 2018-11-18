@@ -40,10 +40,16 @@ class DataGenerator(ks.utils.Sequence):
             X_left[i] = np.load(pos_1.spectrogram_path)
             X_right[i] = np.load(pos_2.spectrogram_path)
 
-            neg_1 = df.sample(random_state=self.rng).iloc[0]
-            neg_2 = df[(df.Gender == neg_1.Gender) & (df.Nationality == neg_1.Nationality) & (df.speaker_id != neg_1.speaker_id)].sample(random_state=self.rng).iloc[0]
-            X_left[i+1] = np.load(neg_1.spectrogram_path)
-            X_right[i+1] = np.load(neg_2.spectrogram_path)
+            # TODO: Fix this ugly hack
+            found_neg = False
+            while not found_neg:
+                neg_1 = df.sample(random_state=self.rng).iloc[0]
+                neg_2_candidates = df[(df.Gender == neg_1.Gender) & (df.Nationality == neg_1.Nationality) & (df.speaker_id != neg_1.speaker_id)]
+                if len(neg_2_candidates):
+                    neg_2 = neg_2_candidates.sample(random_state=self.rng).iloc[0]
+                    X_left[i+1] = np.load(neg_1.spectrogram_path)
+                    X_right[i+1] = np.load(neg_2.spectrogram_path)
+                    found_neg = True
 
             y[i] = 1
             y[i+1] = 0
