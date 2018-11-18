@@ -107,9 +107,9 @@ def build_siam():
     return model
 
 
-def train_model(weights_path: str = WEIGHTS_PATH):
+def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_PATH):
     input_data = TRAIN_CONF['input_data']
-    train_set, dev_set, test_set = get_all_sets(True)
+    train_set, dev_set, test_set = get_all_sets(create_spectrograms)
 
     training_generator = DataGenerator(train_set,
                                        INPUT_DIMS,
