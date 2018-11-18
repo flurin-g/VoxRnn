@@ -33,7 +33,7 @@ class DataGenerator(ks.utils.Sequence):
         X_right = np.empty((self.batch_size, self.dim[0], self.dim[1]))
         y = np.empty(self.batch_size, dtype=np.uint8)
 
-        for i in range(batch_start, batch_end, ROWS_PER_LOOP):
+        for i in range(self.batch_size // ROWS_PER_LOOP):
             pos_1 = df.sample(random_state=self.rng).iloc[0]
             pos_2 = df[(df.speaker_id == pos_1.speaker_id) & (df.path != pos_1.path)].sample(random_state=self.rng).iloc[0]
 
