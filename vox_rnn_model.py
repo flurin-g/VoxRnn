@@ -1,11 +1,8 @@
-import multiprocessing
-from typing import Any, Union
-
 import tensorflow as tf
 import keras as ks
 
 from data_generator import DataGenerator
-from vox_utils import get_dataset, get_all_sets
+from vox_utils import get_all_sets
 from definitions import TRAIN_CONF, WEIGHTS_PATH
 
 INPUT_DIMS = [TRAIN_CONF['input_data']['mel_spectrogram_x'],

@@ -119,7 +119,6 @@ def get_test_set(build_spectrograms=False) -> pd.DataFrame:
     """
     :return: DataFrame containing test data with metadata and filepaths
     """
-    df = get_dataset(build_spectrograms)
 
     return get_all_sets(build_spectrograms)[2]
 
@@ -128,10 +127,9 @@ def get_all_sets(build_spectrograms=False) -> (pd.DataFrame, pd.DataFrame, pd.Da
     :return: DataFrame containing all datasets with metadata and filepaths
     """
     df = get_dataset(build_spectrograms)
-    e_selector = df['VGGFace1 ID'].apply(lambda x: x[0] == 'E')
 
-    train_set = df[(df.split != TEST) & e_selector]
-    dev_set = df[(df.split != TEST) & ~e_selector]
-    test_set = df[(df.split != TEST)]
+    train_set = df[df.split == TRAIN]
+    dev_set = df[df.split == DEV]
+    test_set = df[df.split == TEST]
 
     return train_set, dev_set, test_set
