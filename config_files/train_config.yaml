@@ -19,7 +19,7 @@ topology:
 
   dense2_units: 256 # timit setting: 5 * 40 speakers
 
-  dense3_units: 128 # timit setting: 40 speakers
+  dense3_units: 512 # timit setting: 40 speakers
 
 
   optimizer:

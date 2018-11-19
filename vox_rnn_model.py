@@ -65,8 +65,7 @@ def build_model(mode: str = 'train_pairs') -> ks.Model:
     model.add(ks.layers.Bidirectional(create_lstm(topology['blstm2_units'], is_gpu, is_sequence=False, name='blstm_2')))
 
     num_units = topology['dense1_units']
-    model.add(ks.layers.Dense(num_units,
-                              name='dense_1'))
+    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_1'))
 
     if mode == 'embedding_extraction':
         return model
@@ -74,10 +73,13 @@ def build_model(mode: str = 'train_pairs') -> ks.Model:
     model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
-    model.add(ks.layers.Dense(num_units, name='dense_2'))
+    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_2'))
 
     num_units = topology['dense3_units']
-    model.add(ks.layers.Dense(num_units, name='dense_3'))
+    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_3'))
+
+    num_units = TRAIN_CONF['topology']['dense3_units']
+    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_4'))
 
     return model
 
@@ -134,8 +136,6 @@ def build_embedding_extractor_net():
 
     processed = base_network(input_layer)
 
-    num_units = TRAIN_CONF['topology']['dense3_units']
-
     adam = build_optimizer()
 
     processed.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
@@ -151,9 +151,6 @@ def build_pre_train_net():
     input_layer = ks.Input(shape=INPUT_DIMS)
 
     processed = base_network(input_layer)
-
-    num_units = TRAIN_CONF['topology']['dense3_units']
-    processed.add(ks.layers.Dense(num_units, activation='softmax', name='softmax'))
 
     adam = build_optimizer()
 
