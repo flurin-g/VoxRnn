@@ -1,7 +1,7 @@
 import tensorflow as tf
 import keras as ks
 
-from data_generator import DataGenerator
+from data_generator import DataGenerator, DataGeneratorIdent
 from vox_utils import get_all_sets
 from definitions import TRAIN_CONF, WEIGHTS_PATH
 
@@ -33,7 +33,7 @@ def kullback_leibler_shape(shapes):
     return shape1[0], 1
 
 
-def kb_hinge_loss(y_true, y_pred):
+def kb_hinge_loss(y_pred, y_true):
     """
     y_true: binary label, 1 = same speaker
     y_pred: output of siamese net i.e. kullback-leibler distribution
@@ -55,7 +55,7 @@ def build_model(mode: str = 'train_pairs') -> ks.Model:
 
     is_gpu = tf.test.is_gpu_available(cuda_only=True)
 
-    model = ks.Sequential()
+    model = ks.Sequential(name='base_network')
 
     model.add(
         ks.layers.Bidirectional(create_lstm(topology['blstm1_units'], is_gpu, name='blstm_1'), input_shape=INPUT_DIMS))
@@ -119,7 +119,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
     siamese_net = build_siam()
 
     siamese_net.summary()
-    # TODO: set epochs and implement tensorboard
+    # TODO:implement tensorboard
     siamese_net.fit_generator(generator=training_generator,
                               epochs=input_data['epochs'],
                               validation_data=validation_generator)
@@ -158,3 +158,30 @@ def build_pre_train_net():
     adam = build_optimizer()
 
     processed.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
+
+    return processed
+
+
+def pre_train_mode(create_spectrograms: bool = False, weights_path: str = WEIGHTS_PATH):
+    input_data = TRAIN_CONF['input_data']
+    train_set, dev_set, test_set = get_all_sets(create_spectrograms)
+
+    training_generator = DataGeneratorIdent(train_set,
+                                            INPUT_DIMS,
+                                            input_data['batch_size'],
+                                            input_data['batch_shuffle'])
+
+    validation_generator = DataGeneratorIdent(dev_set,
+                                              INPUT_DIMS,
+                                              input_data['batch_size'],
+                                              input_data['batch_shuffle'])
+
+    pre_train_model = build_pre_train_net()
+
+    pre_train_model.summary()
+
+    pre_train_model.fit_generator(generator=training_generator,
+                                  epochs=input_data['pre_epochs'],
+                                  validation_data=validation_generator)
+
+    pre_train_model.save_weights(weights_path, overwrite=True)
