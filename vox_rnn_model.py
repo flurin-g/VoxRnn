@@ -43,11 +43,11 @@ def kb_hinge_loss(y_true, y_pred):
     return y_true * y_pred + (1 - y_true) * hinge
 
 
-def create_lstm(units: int, gpu: bool, is_sequence: bool = True):
+def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
     if gpu:
-        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS)
+        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
     else:
-        return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS)
+        return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
 
 
 def build_model(mode: str = 'train_pairs') -> ks.Model:
@@ -57,17 +57,16 @@ def build_model(mode: str = 'train_pairs') -> ks.Model:
 
     model = ks.Sequential()
 
-    model.add(ks.layers.Bidirectional(create_lstm(topology['blstm1_units'], is_gpu),
-                                      input_shape=INPUT_DIMS))
+    model.add(
+        ks.layers.Bidirectional(create_lstm(topology['blstm1_units'], is_gpu, name='blstm_1'), input_shape=INPUT_DIMS))
 
     model.add(ks.layers.Dropout(topology['dropout1']))
 
-    model.add(ks.layers.Bidirectional(create_lstm(topology['blstm2_units'],
-                                                  is_gpu,
-                                                  is_sequence=False)))
+    model.add(ks.layers.Bidirectional(create_lstm(topology['blstm2_units'], is_gpu, is_sequence=False, name='blstm_2')))
 
     num_units = topology['dense1_units']
-    model.add(ks.layers.Dense(num_units))
+    model.add(ks.layers.Dense(num_units,
+                              name='dense_1'))
 
     if mode == 'embedding_extraction':
         return model
@@ -75,12 +74,10 @@ def build_model(mode: str = 'train_pairs') -> ks.Model:
     model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
-    model.add(ks.layers.Dense(num_units))
+    model.add(ks.layers.Dense(num_units, name='dense_2'))
 
     num_units = topology['dense3_units']
-    model.add(ks.layers.Dense(num_units))
-
-    model.add(ks.layers.Dense(num_units, activation='softmax'))
+    model.add(ks.layers.Dense(num_units, name='dense_3'))
 
     return model
 
@@ -89,14 +86,15 @@ def build_model(mode: str = 'train_pairs') -> ks.Model:
 def build_siam():
     base_network = build_model()
 
-    input_a = ks.Input(shape=INPUT_DIMS)
-    input_b = ks.Input(shape=INPUT_DIMS)
+    input_a = ks.Input(shape=INPUT_DIMS, name='input_a')
+    input_b = ks.Input(shape=INPUT_DIMS, name='input_b')
 
     processed_a = base_network(input_a)
     processed_b = base_network(input_b)
 
     distance = ks.layers.Lambda(kullback_leibler_divergence,
-                                output_shape=kullback_leibler_shape)([processed_a, processed_b])
+                                output_shape=kullback_leibler_shape,
+                                name='distance')([processed_a, processed_b])
 
     model = ks.Model(inputs=[input_a, input_b], outputs=distance)
     adam = build_optimizer()
@@ -136,6 +134,8 @@ def build_embedding_extractor_net():
 
     processed = base_network(input_layer)
 
+    num_units = TRAIN_CONF['topology']['dense3_units']
+
     adam = build_optimizer()
 
     processed.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
@@ -143,3 +143,18 @@ def build_embedding_extractor_net():
     processed.load_weights(WEIGHTS_PATH, by_name=True)
 
     return processed
+
+
+def build_pre_train_net():
+    base_network = build_model()
+
+    input_layer = ks.Input(shape=INPUT_DIMS)
+
+    processed = base_network(input_layer)
+
+    num_units = TRAIN_CONF['topology']['dense3_units']
+    processed.add(ks.layers.Dense(num_units, activation='softmax', name='softmax'))
+
+    adam = build_optimizer()
+
+    processed.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
