@@ -58,3 +58,8 @@ class DataGenerator(ks.utils.Sequence):
 
     def on_epoch_end(self):
         pass
+
+
+class DataGeneratorIdent(ks.utils.Sequence):
+    def __init__(self, dataset: pd.DataFrame, dim: list, batch_size: int, shuffle: bool):
+        pass
