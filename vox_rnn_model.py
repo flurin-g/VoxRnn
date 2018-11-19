@@ -78,8 +78,8 @@ def build_model(mode: str = 'train_pairs') -> ks.Model:
     num_units = topology['dense3_units']
     model.add(ks.layers.Dense(num_units, activation='relu', name='dense_3'))
 
-    num_units = TRAIN_CONF['topology']['dense3_units']
-    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_4'))
+    # num_units = TRAIN_CONF['topology']['dense3_units']
+    # model.add(ks.layers.Dense(num_units, activation='relu', name='dense_4'))
 
     return model
 
