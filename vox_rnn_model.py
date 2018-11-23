@@ -21,26 +21,23 @@ def build_optimizer():
     return optimizer
 
 
-def kullback_leibler_divergence(vects):
+def euclidean_distance(vects):
     x, y = vects
-    x = ks.backend.clip(x, ks.backend.epsilon(), 1)
-    y = ks.backend.clip(y, ks.backend.epsilon(), 1)
-    return ks.backend.sum(x * ks.backend.log(x / y), axis=-1)
+    return ks.backend.sqrt(ks.backend.sum(ks.backend.square(x - y), axis=1, keepdims=True))
 
 
-def kullback_leibler_shape(shapes):
+def eucl_dist_output_shape(shapes):
     shape1, shape2 = shapes
-    return shape1[0], 1
+    return shape1
 
 
-def kb_hinge_loss(y_pred, y_true):
+def contrastive_loss(y_true, y_pred):
+    """Contrastive loss from Hadsell-et-al.'06
+    http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
     """
-    y_true: binary label, 1 = same speaker
-    y_pred: output of siamese net i.e. kullback-leibler distribution
-    """
-    MARGIN = 3.
-    hinge = ks.backend.mean(ks.backend.square(ks.backend.maximum(MARGIN - y_true * y_pred, 0.)), axis=-1)
-    return y_true * y_pred + (1 - y_true) * hinge
+    margin = 1
+    return ks.backend.mean(
+        y_true * ks.backend.square(y_pred) + (1 - y_true) * ks.backend.square(ks.backend.maximum(margin - y_pred, 0)))
 
 
 def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
@@ -94,13 +91,12 @@ def build_siam():
     processed_a = base_network(input_a)
     processed_b = base_network(input_b)
 
-    distance = ks.layers.Lambda(kullback_leibler_divergence,
-                                output_shape=kullback_leibler_shape,
-                                name='distance')([processed_a, processed_b])
+    distance = ks.layers.Lambda(euclidean_distance,
+                                output_shape=eucl_dist_output_shape)([processed_a, processed_b])
 
     model = ks.Model(inputs=[input_a, input_b], outputs=distance)
     adam = build_optimizer()
-    model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss=contrastive_loss, optimizer=adam, metrics=['accuracy'])
     return model
 
 
