@@ -130,19 +130,28 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
 
 def build_embedding_extractor_net():
+    ks.layers.core.K.set_learning_phase(0)
+
     base_network = build_model('embedding_extraction')
 
-    input_layer = ks.Input(shape=INPUT_DIMS)
+    input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
     processed = base_network(input_layer)
 
+    model = ks.Model(input=input_layer, output=processed)
+
     adam = build_optimizer()
 
-    processed.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
 
-    processed.load_weights(WEIGHTS_PATH, by_name=True)
+    model.summary()
 
-    return processed
+    model.load_weights(WEIGHTS_PATH, by_name=True)
+
+    # embedding_extractor = ks.backend.function([model.get_layer('input').input,  ks.backend.learning_phase()],
+    #                                           [model.get_layer('base_network').get_layer('dense_1').output])
+
+    return model
 
 
 def build_pre_train_net():
