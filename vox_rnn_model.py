@@ -33,7 +33,7 @@ def kullback_leibler_shape(shapes):
     return shape1[0], 1
 
 
-def kb_hinge_loss(y_pred, y_true):
+def kb_hinge_loss(y_true, y_pred):
     """
     y_true: binary label, 1 = same speaker
     y_pred: output of siamese net i.e. kullback-leibler distribution
