@@ -94,9 +94,10 @@ def build_siam():
     distance = ks.layers.Lambda(euclidean_distance,
                                 output_shape=eucl_dist_output_shape)([processed_a, processed_b])
 
-    model = ks.Model(inputs=[input_a, input_b], outputs=distance)
+    model = ks.Model([input_a, input_b], distance)
     adam = build_optimizer()
-    model.compile(loss=contrastive_loss, optimizer=adam, metrics=['accuracy'])
+    rms = ks.optimizers.RMSprop()
+    model.compile(loss=contrastive_loss, optimizer=rms, metrics=['accuracy'])
     return model
 
 
@@ -137,8 +138,9 @@ def build_embedding_extractor_net():
     model = ks.Model(input=input_layer, output=processed)
 
     adam = build_optimizer()
+    rms = ks.optimizers.RMSprop
 
-    model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss=euclidean_distance(), optimizer=rms, metrics=['accuracy'])
 
     model.summary()
 
