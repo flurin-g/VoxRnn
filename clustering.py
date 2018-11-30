@@ -53,14 +53,14 @@ def load_segments(num_speaker: int, segments_per_speaker: int) -> Tuple[np.ndarr
     return np.array(embeddings), speaker_ids
 
 
-def create_dendrogram(X, y, segments):
+def create_dendrogram(X, y):
     linked = linkage(X, 'single')
-    labelList = range(1, segments + 1)
+    y = [elem[-2:] for elem in y]
 
     plt.figure(figsize=(10, 7))
     dendrogram(linked,
                orientation='top',
-               labels=labelList,
+               labels=y,
                distance_sort='descending',
                show_leaf_counts=True)
     plt.show()
@@ -87,16 +87,10 @@ def cluster_embeddings(X, y, num_speakers):
         plt.ylim(points[1].min() + 0.00002, points[1].max() + 0.00002)
     plt.show()
 
-    # plt.scatter(points[0], points[1], c=cluster.labels_, cmap='rainbow')
-    # plt.annotate(y, (points[0], points[1]), fontsize=12)
-    # plt.show()
-
-
 if __name__ == '__main__':
     n_speak = 3
     n_seg = 5
     (X, y) = load_segments(num_speaker=n_speak, segments_per_speaker=n_seg)
-    # create_dendrogram(X, y, n_speak * n_seg)
+    create_dendrogram(X, y)
     cluster_embeddings(X, y, num_speakers=n_speak)
-    # print(type(X))
-    # plot_results(X, y, n_speak*n_seg)
+
