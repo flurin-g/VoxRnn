@@ -5,6 +5,8 @@ import pandas as pd
 # ToDo: add mattplotlib to requirements.txt
 from matplotlib import pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
+import sklearn as sk
+from matplotlib import pyplot as plt
 
 from vox_rnn_model import build_embedding_extractor_net
 from vox_utils import create_spectrogram
@@ -23,7 +25,7 @@ def load_segments(num_speaker: int, segments_per_speaker: int) -> Tuple[np.ndarr
     # selects num_speakers, and from each speaker segments_per_speaker
     segments: pd.DataFrame = (test_set[test_set['speaker_id']
                               .isin(test_set['speaker_id']
-                              .unique()[:num_speaker])]
+                                    .unique()[:num_speaker])]
                               .groupby('speaker_id')
                               .apply(lambda df: df.sample(segments_per_speaker)))
 
@@ -44,17 +46,57 @@ def load_segments(num_speaker: int, segments_per_speaker: int) -> Tuple[np.ndarr
                                                                                      INPUT_DATA['mel_spectrogram_x'],
                                                                                      INPUT_DATA['mel_spectrogram_y']))
 
-        embeddings.extend(embedding_extractor.predict_on_batch(spectrogram))
-        speaker_ids.extend([segment[1]['speaker_id']] * spectrogram.shape[0])
+        utterance_embedding = np.mean(embedding_extractor.predict_on_batch(spectrogram), axis=0)
+        embeddings.append(utterance_embedding)
+        speaker_ids.extend([segment[1]['speaker_id']])
 
     return np.array(embeddings), speaker_ids
 
-def plot_results(X, y):
-    plt.scatter(X[:, 0], X[:, 1])
+
+def create_dendrogram(X, y, segments):
+    linked = linkage(X, 'single')
+    labelList = range(1, segments + 1)
+
+    plt.figure(figsize=(10, 7))
+    dendrogram(linked,
+               orientation='top',
+               labels=labelList,
+               distance_sort='descending',
+               show_leaf_counts=True)
     plt.show()
 
 
+def cluster_embeddings(X, y, num_speakers):
+    cluster = sk.cluster.AgglomerativeClustering(n_clusters=num_speakers, affinity='euclidean', linkage='ward')
+    cluster.fit_predict(X)
+
+    for i in range(len(y)):
+        print(str(cluster.labels_[i]) + ' - ' + str(y[i]))
+
+    tsne = sk.manifold.TSNE(n_components=2, random_state=0)
+
+    X = tsne.fit_transform(X)
+
+    points = (X[:, 0], X[:, 1])
+
+    plt.scatter(points[0], points[1], c=cluster.labels_, cmap='rainbow')
+
+    for label, x, y in zip(y, points[0], points[1]):
+        plt.annotate(label[-4:], xy=(x, y), xytext=(0, 0), textcoords='offset points')
+        plt.xlim(points[0].min() + 0.00002, points[0].max() + 0.00002)
+        plt.ylim(points[1].min() + 0.00002, points[1].max() + 0.00002)
+    plt.show()
+
+    # plt.scatter(points[0], points[1], c=cluster.labels_, cmap='rainbow')
+    # plt.annotate(y, (points[0], points[1]), fontsize=12)
+    # plt.show()
+
+
 if __name__ == '__main__':
-    X, y = load_segments(num_speaker=3, segments_per_speaker=2)
-    print(type(X))
-    plot_results(X, y)
+    n_speak = 3
+    n_seg = 5
+    (X, y) = load_segments(num_speaker=n_speak, segments_per_speaker=n_seg)
+    # create_dendrogram(X, y, n_speak * n_seg)
+    cluster_embeddings(X, y, num_speakers=n_speak)
+    # print(type(X))
+    # plot_results(X, y, n_speak*n_seg)

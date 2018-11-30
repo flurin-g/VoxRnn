@@ -132,7 +132,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 def build_embedding_extractor_net():
     ks.layers.core.K.set_learning_phase(0)
 
-    base_network = build_model()
+    base_network = build_model(mode='embedding_extraction')
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
