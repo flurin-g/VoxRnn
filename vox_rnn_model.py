@@ -150,7 +150,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 def build_embedding_extractor_net():
     ks.layers.core.K.set_learning_phase(0)
 
-    base_network = build_model()
+    base_network = build_model(mode='embedding_extraction')
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
@@ -208,4 +208,4 @@ def pre_train_mode(create_spectrograms: bool = False, weights_path: str = WEIGHT
                                   epochs=input_data['pre_epochs'],
                                   validation_data=validation_generator)
 
-    pre_train_model.save_weights(f'{time_ns()}-{weights_path}')
+    pre_train_model.save_weights(weights_path, overwrite=True)
