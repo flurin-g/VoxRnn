@@ -1,4 +1,4 @@
-from time import time_ns
+from time import time
 from os import path
 
 import tensorflow as tf
@@ -109,7 +109,7 @@ def build_siam():
 
 def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_PATH):
     model_dir = path.dirname(WEIGHTS_PATH)
-    checkpoint_pattern = path.join(model_dir, 'weights.{epoch:02d}-{val_loss:.2f}-' + time_ns() + '.hdf5')
+    checkpoint_pattern = path.join(model_dir, 'weights.{epoch:02d}-{val_loss:.2f}-' + str(time()) + '.hdf5')
 
     callbacks = [
         ks.callbacks.ProgbarLogger(),
