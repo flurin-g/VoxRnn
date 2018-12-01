@@ -22,10 +22,10 @@ def initialize() -> tuple:
     meta = os.path.join(root_dir, global_conf['files']['vox_celeb_meta'])
     vox_dev_wav = os.path.join(root_dir, global_conf['files']['vox_dev_wav'])
     vox_test_wav = os.path.join(root_dir, global_conf['files']['vox_test_wav'])
-    weights_path = os.path.join(root_dir, global_conf['files']['weights_path'])
-    log_dir = os.path.join(root_dir, global_conf['files']['log_dir'])
+    weights = os.path.join(root_dir, global_conf['files']['model_weights'])
+    vox_pairs = os.path.join(root_dir, global_conf['files']['vox_celeb_pairs'])
 
-    return global_conf, train_conf, splits, meta, vox_dev_wav, vox_test_wav, weights_path, log_dir
+    return global_conf, train_conf, splits, meta, vox_dev_wav, vox_test_wav, weights, vox_pairs
 
 
-GLOBAL_CONF, TRAIN_CONF, SPLITS, META, VOX_DEV_WAV, VOX_TEST_WAV, WEIGHTS_PATH, LOG_DIR = initialize()
+GLOBAL_CONF, TRAIN_CONF, SPLITS, META, VOX_DEV_WAV, VOX_TEST_WAV, WEIGHTS_PATH, VOX_PAIRS = initialize()
