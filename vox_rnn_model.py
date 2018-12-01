@@ -141,7 +141,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
     # TODO:implement tensorboard
     siamese_net.fit_generator(generator=training_generator,
                               epochs=input_data['epochs'],
-                              validation_data=validation_generator
+                              validation_data=validation_generator,
                               callbacks=callbacks)
 
     siamese_net.save_weights(weights_path, overwrite=True)
