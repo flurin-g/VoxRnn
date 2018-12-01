@@ -1,9 +1,12 @@
+from time import time_ns
+from os import path
+
 import tensorflow as tf
 import keras as ks
 
 from data_generator import DataGenerator, DataGeneratorIdent
 from vox_utils import get_all_sets
-from definitions import TRAIN_CONF, WEIGHTS_PATH
+from definitions import TRAIN_CONF, WEIGHTS_PATH, LOG_DIR
 
 INPUT_DIMS = [TRAIN_CONF['input_data']['mel_spectrogram_x'],
               TRAIN_CONF['input_data']['mel_spectrogram_y']]
@@ -105,6 +108,20 @@ def build_siam():
 
 
 def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_PATH):
+    model_dir = path.dirname(WEIGHTS_PATH)
+    checkpoint_pattern = path.join(model_dir, 'weights.{epoch:02d}-{val_loss:.2f}-' + time_ns() + '.hdf5')
+
+    callbacks = [
+        ks.callbacks.ProgbarLogger(),
+        ks.callbacks.ModelCheckpoint(checkpoint_pattern),
+        ks.callbacks.TensorBoard(
+            LOG_DIR,
+            histogram_freq=1,
+            write_grads=True,
+            write_images=True
+        )
+    ]
+
     input_data = TRAIN_CONF['input_data']
     train_set, dev_set, test_set = get_all_sets(create_spectrograms)
 
@@ -124,7 +141,8 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
     # TODO:implement tensorboard
     siamese_net.fit_generator(generator=training_generator,
                               epochs=input_data['epochs'],
-                              validation_data=validation_generator)
+                              validation_data=validation_generator
+                              callbacks=callbacks)
 
     siamese_net.save_weights(weights_path, overwrite=True)
 
@@ -132,7 +150,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 def build_embedding_extractor_net():
     ks.layers.core.K.set_learning_phase(0)
 
-    base_network = build_model(mode='embedding_extraction')
+    base_network = build_model()
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
@@ -190,4 +208,4 @@ def pre_train_mode(create_spectrograms: bool = False, weights_path: str = WEIGHT
                                   epochs=input_data['pre_epochs'],
                                   validation_data=validation_generator)
 
-    pre_train_model.save_weights(weights_path, overwrite=True)
+    pre_train_model.save_weights(f'{time_ns()}-{weights_path}')
