@@ -1,7 +1,7 @@
 import tensorflow as tf
 import keras as ks
 
-from data_generator import DataGenerator, DataGeneratorIdent
+from data_generator import DataGenerator
 from vox_utils import get_all_sets
 from definitions import TRAIN_CONF, WEIGHTS_PATH
 
@@ -18,29 +18,30 @@ def build_optimizer():
                                        p['beta_2'],
                                        float(p['epsilon']),
                                        p['decay'])
+
+    if p['type'] == 'rms':
+        optimizer = ks.optimizers.RMSprop()
+
     return optimizer
 
 
-def kullback_leibler_divergence(vects):
+def euclidean_distance(vects):
     x, y = vects
-    x = ks.backend.clip(x, ks.backend.epsilon(), 1)
-    y = ks.backend.clip(y, ks.backend.epsilon(), 1)
-    return ks.backend.sum(x * ks.backend.log(x / y), axis=-1)
+    return ks.backend.sqrt(ks.backend.maximum(ks.backend.sum(ks.backend.square(x - y), axis=1, keepdims=True), ks.backend.epsilon()))
 
 
-def kullback_leibler_shape(shapes):
+def eucl_dist_output_shape(shapes):
     shape1, shape2 = shapes
-    return shape1[0], 1
+    return (shape1[0], 1)
 
 
-def kb_hinge_loss(y_true, y_pred):
-    """
-    y_true: binary label, 1 = same speaker
-    y_pred: output of siamese net i.e. kullback-leibler distribution
-    """
-    MARGIN = 3.
-    hinge = ks.backend.mean(ks.backend.square(ks.backend.maximum(MARGIN - y_true * y_pred, 0.)), axis=-1)
-    return y_true * y_pred + (1 - y_true) * hinge
+def contrastive_loss(y_true, y_pred):
+    '''Contrastive loss from Hadsell-et-al.'06
+    http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+    '''
+    margin = 1
+    return ks.backend.mean(y_true * ks.backend.square(y_pred) +
+                  (1 - y_true) * ks.backend.square(ks.backend.maximum(margin - y_pred, 0)))
 
 
 def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
@@ -50,7 +51,7 @@ def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
         return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
 
 
-def build_model(mode: str = 'train_pairs') -> ks.Model:
+def build_model() -> ks.Model:
     topology = TRAIN_CONF['topology']
 
     is_gpu = tf.test.is_gpu_available(cuda_only=True)
@@ -67,9 +68,6 @@ def build_model(mode: str = 'train_pairs') -> ks.Model:
     num_units = topology['dense1_units']
     model.add(ks.layers.Dense(num_units, activation='relu', name='dense_1'))
 
-    if mode == 'embedding_extraction':
-        return model
-
     model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
@@ -78,13 +76,9 @@ def build_model(mode: str = 'train_pairs') -> ks.Model:
     num_units = topology['dense3_units']
     model.add(ks.layers.Dense(num_units, activation='relu', name='dense_3'))
 
-    # num_units = TRAIN_CONF['topology']['dense3_units']
-    # model.add(ks.layers.Dense(num_units, activation='relu', name='dense_4'))
-
     return model
 
 
-# ks.Model(inputs=X_input, outputs=layers[output_layer])
 def build_siam():
     base_network = build_model()
 
@@ -94,13 +88,13 @@ def build_siam():
     processed_a = base_network(input_a)
     processed_b = base_network(input_b)
 
-    distance = ks.layers.Lambda(kullback_leibler_divergence,
-                                output_shape=kullback_leibler_shape,
+    distance = ks.layers.Lambda(euclidean_distance,
+                                output_shape=eucl_dist_output_shape,
                                 name='distance')([processed_a, processed_b])
 
     model = ks.Model(inputs=[input_a, input_b], outputs=distance)
     adam = build_optimizer()
-    model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss=contrastive_loss, optimizer=adam, metrics=['accuracy'])
     return model
 
 
@@ -119,9 +113,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
                                          input_data['batch_shuffle'])
 
     siamese_net = build_siam()
-
     siamese_net.summary()
-    # TODO:implement tensorboard
     siamese_net.fit_generator(generator=training_generator,
                               epochs=input_data['epochs'],
                               validation_data=validation_generator)
@@ -132,7 +124,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 def build_embedding_extractor_net():
     ks.layers.core.K.set_learning_phase(0)
 
-    base_network = build_model(mode='embedding_extraction')
+    base_network = build_model()
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
@@ -142,52 +134,10 @@ def build_embedding_extractor_net():
 
     adam = build_optimizer()
 
-    model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss=euclidean_distance, optimizer=adam, metrics=['accuracy'])
 
     model.summary()
 
     model.load_weights(WEIGHTS_PATH, by_name=True)
 
-    # embedding_extractor = ks.backend.function([model.get_layer('input').input,  ks.backend.learning_phase()],
-    #                                           [model.get_layer('base_network').get_layer('dense_1').output])
-
     return model
-
-
-def build_pre_train_net():
-    base_network = build_model()
-
-    input_layer = ks.Input(shape=INPUT_DIMS)
-
-    processed = base_network(input_layer)
-
-    adam = build_optimizer()
-
-    processed.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
-
-    return processed
-
-
-def pre_train_mode(create_spectrograms: bool = False, weights_path: str = WEIGHTS_PATH):
-    input_data = TRAIN_CONF['input_data']
-    train_set, dev_set, test_set = get_all_sets(create_spectrograms)
-
-    training_generator = DataGeneratorIdent(train_set,
-                                            INPUT_DIMS,
-                                            input_data['batch_size'],
-                                            input_data['batch_shuffle'])
-
-    validation_generator = DataGeneratorIdent(dev_set,
-                                              INPUT_DIMS,
-                                              input_data['batch_size'],
-                                              input_data['batch_shuffle'])
-
-    pre_train_model = build_pre_train_net()
-
-    pre_train_model.summary()
-
-    pre_train_model.fit_generator(generator=training_generator,
-                                  epochs=input_data['pre_epochs'],
-                                  validation_data=validation_generator)
-
-    pre_train_model.save_weights(weights_path, overwrite=True)

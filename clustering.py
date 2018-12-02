@@ -88,7 +88,7 @@ def cluster_embeddings(X, y, num_speakers):
     plt.show()
 
 if __name__ == '__main__':
-    n_speak = 3
+    n_speak = 7
     n_seg = 5
     (X, y) = load_segments(num_speaker=n_speak, segments_per_speaker=n_seg)
     create_dendrogram(X, y)

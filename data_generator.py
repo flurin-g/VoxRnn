@@ -2,13 +2,14 @@ import pandas as pd
 
 import numpy as np
 import keras as ks
+from keras.utils import Sequence
 
 ROWS_PER_LOOP = 2
 
 NUM_OF_PAIRS = 100000
 
 
-class DataGenerator(ks.utils.Sequence):
+class DataGenerator(Sequence):
     'Generates data for Keras'
 
     def __init__(self, dataset: pd.DataFrame, dim: list, batch_size: int, shuffle: bool):
@@ -24,10 +25,6 @@ class DataGenerator(ks.utils.Sequence):
     def __getitem__(self, current_batch):
         'Generate one batch of data'
         df = self.dataset
-        # init np array for pairs and corresponding labels
-        # TODO: clean up np.concat, rename dim
-        batch_start = self.batch_size * current_batch
-        batch_end = batch_start + self.batch_size
 
         X_left = np.empty((self.batch_size, self.dim[0], self.dim[1]))
         X_right = np.empty((self.batch_size, self.dim[0], self.dim[1]))
@@ -57,9 +54,4 @@ class DataGenerator(ks.utils.Sequence):
         return [[X_left, X_right], y]
 
     def on_epoch_end(self):
-        pass
-
-
-class DataGeneratorIdent(ks.utils.Sequence):
-    def __init__(self, dataset: pd.DataFrame, dim: list, batch_size: int, shuffle: bool):
         pass
