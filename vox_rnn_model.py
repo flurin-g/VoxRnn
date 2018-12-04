@@ -25,23 +25,26 @@ def build_optimizer():
     return optimizer
 
 
-def euclidean_distance(vects):
+def kullback_leibler_divergence(vects):
     x, y = vects
-    return ks.backend.sqrt(ks.backend.maximum(ks.backend.sum(ks.backend.square(x - y), axis=1, keepdims=True), ks.backend.epsilon()))
+    x = ks.backend.maximum(x, ks.backend.epsilon())
+    y = ks.backend.maximum(y, ks.backend.epsilon())
+    return ks.backend.sum(x * ks.backend.log(x / y), axis=-1)
 
 
-def eucl_dist_output_shape(shapes):
+def kullback_leibler_shape(shapes):
     shape1, shape2 = shapes
-    return (shape1[0], 1)
+    return shape1[0], 1
 
 
-def contrastive_loss(y_true, y_pred):
-    '''Contrastive loss from Hadsell-et-al.'06
-    http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
-    '''
-    margin = 1
-    return ks.backend.mean(y_true * ks.backend.square(y_pred) +
-                  (1 - y_true) * ks.backend.square(ks.backend.maximum(margin - y_pred, 0)))
+def kb_hinge_loss(y_true, y_pred):
+    """
+    y_true: binary label, 1 = same speaker
+    y_pred: output of siamese net i.e. kullback-leibler distribution
+    """
+    MARGIN = 3.
+    hinge = ks.backend.mean(ks.backend.square(ks. backend.maximum(MARGIN - y_true * y_pred, 0.)), axis=-1)
+    return y_true * y_pred + (1 - y_true) * hinge
 
 
 def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
@@ -69,15 +72,20 @@ def build_model(mode: str = 'train') -> ks.Model:
         return model
 
     num_units = topology['dense1_units']
-    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_1'))
+    model.add(ks.layers.Dense(num_units, name='dense_1'))
+    model.add(ks.layers.advanced_activations.PReLU(init='zero', weights=None))
 
     model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
-    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_2'))
+    model.add(ks.layers.Dense(num_units, name='dense_2'))
+    model.add(ks.layers.advanced_activations.PReLU(init='zero', weights=None))
 
     num_units = topology['dense3_units']
-    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_3'))
+    model.add(ks.layers.Dense(num_units, name='dense_3'))
+    model.add(ks.layers.advanced_activations.PReLU(init='zero', weights=None))
+
+    #model.add(ks.layers.Softmax(num_units, name='softmax'))
 
     return model
 
@@ -91,13 +99,13 @@ def build_siam():
     processed_a = base_network(input_a)
     processed_b = base_network(input_b)
 
-    distance = ks.layers.Lambda(euclidean_distance,
-                                output_shape=eucl_dist_output_shape,
+    distance = ks.layers.Lambda(kullback_leibler_divergence,
+                                output_shape=kullback_leibler_shape,
                                 name='distance')([processed_a, processed_b])
 
     model = ks.Model(inputs=[input_a, input_b], outputs=distance)
     adam = build_optimizer()
-    model.compile(loss=contrastive_loss, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss=kb_hinge_loss, optimizer=adam, metrics=['accuracy'])
     return model
 
 
