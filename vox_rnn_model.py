@@ -42,7 +42,7 @@ def kb_hinge_loss(y_true, y_pred):
     y_true: binary label, 1 = same speaker
     y_pred: output of siamese net i.e. kullback-leibler distribution
     """
-    MARGIN = 3.
+    MARGIN = 1.
     hinge = ks.backend.mean(ks.backend.maximum(MARGIN - y_pred, 0.), axis=-1)
     return y_true * y_pred + (1 - y_true) * hinge
 
