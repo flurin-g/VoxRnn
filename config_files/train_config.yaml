@@ -13,13 +13,15 @@ topology:
 
   blstm2_units: 128
 
-  dense1_units: 512
+  dense1_units: 1024
 
   dropout2: 0.25
 
-  dense2_units: 256 # timit setting: 5 * 40 speakers
+  dense2_units: 512 # timit setting: 5 * 40 speakers
 
-  dense3_units: 128 # timit setting: 40 speakers
+  dense3_units: 256 # timit setting: 40 speakers
+
+  dense4_units: 128
 
 
   optimizer:

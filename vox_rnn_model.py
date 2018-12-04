@@ -85,6 +85,10 @@ def build_model(mode: str = 'train') -> ks.Model:
     model.add(ks.layers.Dense(num_units, name='dense_3'))
     model.add(ks.layers.advanced_activations.PReLU(init='zero', weights=None))
 
+    num_units = topology['dense4_units']
+    model.add(ks.layers.Dense(num_units, name='dense_4'))
+    model.add(ks.layers.advanced_activations.PReLU(init='zero', weights=None))
+
     #model.add(ks.layers.Softmax(num_units, name='softmax'))
 
     return model
