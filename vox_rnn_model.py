@@ -51,7 +51,7 @@ def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
         return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
 
 
-def build_model() -> ks.Model:
+def build_model(mode: str = 'train') -> ks.Model:
     topology = TRAIN_CONF['topology']
 
     is_gpu = tf.test.is_gpu_available(cuda_only=True)
@@ -64,6 +64,9 @@ def build_model() -> ks.Model:
     model.add(ks.layers.Dropout(topology['dropout1']))
 
     model.add(ks.layers.Bidirectional(create_lstm(topology['blstm2_units'], is_gpu, is_sequence=False, name='blstm_2')))
+
+    if mode == 'extraction':
+        return model
 
     num_units = topology['dense1_units']
     model.add(ks.layers.Dense(num_units, activation='relu', name='dense_1'))
@@ -122,9 +125,9 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
 
 def build_embedding_extractor_net():
-    ks.layers.core.K.set_learning_phase(0)
+    #ks.layers.core.K.set_learning_phase(0)
 
-    base_network = build_model()
+    base_network = build_model('extraction')
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
@@ -132,9 +135,9 @@ def build_embedding_extractor_net():
 
     model = ks.Model(input=input_layer, output=processed)
 
-    adam = build_optimizer()
+    optimizer = build_optimizer()
 
-    model.compile(loss=euclidean_distance, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss='mean_squared_error', optimizer=optimizer, metrics=['accuracy'])
 
     model.summary()
 

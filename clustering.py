@@ -67,11 +67,15 @@ def create_dendrogram(X, y):
 
 
 def cluster_embeddings(X, y, num_speakers):
+    le = sk.preprocessing.LabelEncoder().fit(y)
+    y_num = le.transform(y)
+
     cluster = sk.cluster.AgglomerativeClustering(n_clusters=num_speakers, affinity='euclidean', linkage='ward')
     cluster.fit_predict(X)
 
-    for i in range(len(y)):
-        print(str(cluster.labels_[i]) + ' - ' + str(y[i]))
+    m_rate = 1.0 - max(0.0, sk.metrics.adjusted_rand_score(y_num, cluster.labels_))
+
+    print("Missclassification Rate: {:<5}".format(m_rate))
 
     tsne = sk.manifold.TSNE(n_components=2, random_state=0)
 
@@ -87,9 +91,10 @@ def cluster_embeddings(X, y, num_speakers):
         plt.ylim(points[1].min() + 0.00002, points[1].max() + 0.00002)
     plt.show()
 
+
 if __name__ == '__main__':
-    n_speak = 7
-    n_seg = 5
+    n_speak = 2
+    n_seg = 3
     (X, y) = load_segments(num_speaker=n_speak, segments_per_speaker=n_seg)
     create_dendrogram(X, y)
     cluster_embeddings(X, y, num_speakers=n_speak)
