@@ -27,8 +27,8 @@ def build_optimizer():
 
 def kullback_leibler_divergence(vects):
     x, y = vects
-    x = ks.backend.maximum(x, ks.backend.epsilon())
-    y = ks.backend.maximum(y, ks.backend.epsilon())
+    x = ks.backend.clip(x, ks.backend.epsilon(), 1)
+    y = ks.backend.clip(y, ks.backend.epsilon(), 1)
     return ks.backend.sum(x * ks.backend.log(x / y), axis=-1)
 
 
