@@ -3,6 +3,7 @@ from os import path
 
 import tensorflow as tf
 import keras as ks
+import numpy as np
 
 from data_generator import DataGenerator
 from vox_utils import get_all_sets
@@ -30,7 +31,8 @@ def build_optimizer():
 
 def euclidean_distance(vects):
     x, y = vects
-    return ks.backend.sqrt(ks.backend.maximum(ks.backend.sum(ks.backend.square(x - y), axis=1, keepdims=True), ks.backend.epsilon()))
+    return ks.backend.sqrt(
+        ks.backend.maximum(ks.backend.sum(ks.backend.square(x - y), axis=1, keepdims=True), ks.backend.epsilon()))
 
 
 def eucl_dist_output_shape(shapes):
@@ -44,7 +46,7 @@ def contrastive_loss(y_true, y_pred):
     '''
     margin = 1
     return ks.backend.mean(y_true * ks.backend.square(y_pred) +
-                  (1 - y_true) * ks.backend.square(ks.backend.maximum(margin - y_pred, 0)))
+                           (1 - y_true) * ks.backend.square(ks.backend.maximum(margin - y_pred, 0)))
 
 
 def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
@@ -115,35 +117,33 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
             LOG_DIR,
             histogram_freq=1,
             write_grads=True,
-            write_images=True
+            write_images=True,
+            write_graph=True
         )
     ]
 
     input_data = TRAIN_CONF['input_data']
+    batch_size = input_data['batch_size']
+
     train_set, dev_set, test_set = get_all_sets(create_spectrograms)
 
-    training_generator = DataGenerator(train_set,
-                                       INPUT_DIMS,
-                                       input_data['batch_size'],
-                                       input_data['batch_shuffle'])
+    training_generator = DataGenerator(train_set, INPUT_DIMS, batch_size)
 
-    validation_generator = DataGenerator(dev_set,
-                                         INPUT_DIMS,
-                                         input_data['batch_size'],
-                                         input_data['batch_shuffle'])
+    val_data = DataGenerator.generate_batch(dev_set, batch_size, INPUT_DIMS[0], INPUT_DIMS[1], np.random.RandomState(1))
 
     siamese_net = build_siam()
     siamese_net.summary()
     siamese_net.fit_generator(generator=training_generator,
                               epochs=input_data['epochs'],
-                              validation_data=validation_generator,
+                              validation_data=val_data,
+                              use_multiprocessing=True,
                               callbacks=callbacks)
 
     siamese_net.save_weights(weights_path, overwrite=True)
 
 
 def build_embedding_extractor_net():
-    #ks.layers.core.K.set_learning_phase(0)
+    # ks.layers.core.K.set_learning_phase(0)
 
     base_network = build_model('extraction')
 
