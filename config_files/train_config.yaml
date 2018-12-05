@@ -13,22 +13,23 @@ topology:
 
   blstm2_units: 128
 
-  dense1_units: 512
+  dense1_units: 1024
 
   dropout2: 0.25
 
-  dense2_units: 256 # timit setting: 5 * 40 speakers
+  dense2_units: 512 # timit setting: 5 * 40 speakers
 
-  dense3_units: 128 # timit setting: 40 speakers
+  dense3_units: 256 # timit setting: 40 speakers
+
+  dense4_units: 128
 
 
   optimizer:
-    type: rms
-#   type: adam
-#    learning_rate: 0.001
-#    beta_1: 0.9
-#    beta_2: 0.999
-#    epsilon: 1e-08
-#    decay: 0.0
+    type: adam
+    learning_rate: 0.01
+    beta_1: 0.9
+    beta_2: 0.999
+    epsilon: 1e-08
+    decay: 0.0
 
   output_layer: layer8
