@@ -75,7 +75,11 @@ def get_dataset(build_spectrograms=False) -> pd.DataFrame:
         header=None
     )
 
-    splits['speaker_id'] = splits['path'].apply(lambda p: p.split('/')[0])
+    speaker_id_in_path_index = 0
+    if 'dialect_region' in meta:
+        speaker_id_in_path_index = 1
+
+    splits['speaker_id'] = splits['path'].apply(lambda p: p.split('/')[speaker_id_in_path_index])
     splits['wav_path'] = splits.apply(
         lambda r: get_wav_path(r['split'], r['path']),
         axis='columns'
@@ -84,6 +88,10 @@ def get_dataset(build_spectrograms=False) -> pd.DataFrame:
     dataset = pd.merge(splits, meta, how='left', on='speaker_id', validate="m:1")
 
     dataset['spectrogram_path'] = dataset['wav_path'].apply(lambda p: p + '.npy')
+
+    if 'dialect_region' in dataset:
+        dataset['Gender'] = dataset.dialect_region
+        dataset['Nationality'] = dataset.dialect_region
 
     mel_config = configs['spectrogram']
     if build_spectrograms:
