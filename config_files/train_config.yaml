@@ -13,20 +13,18 @@ topology:
 
   blstm2_units: 128
 
-  dense1_units: 1024
+  dense1_units: 12510 # 10 * C_s speakers
 
   dropout2: 0.25
 
-  dense2_units: 512 # timit setting: 5 * 40 speakers
+  dense2_units: 6255 # 5 * C_s speakers
 
-  dense3_units: 256 # timit setting: 40 speakers
-
-  dense4_units: 128
+  dense3_units: 1251 # 1 * C_s speakers, for softmax equal
 
 
   optimizer:
     type: adam
-    learning_rate: 0.01
+    learning_rate: 0.001
     beta_1: 0.9
     beta_2: 0.999
     epsilon: 1e-08
