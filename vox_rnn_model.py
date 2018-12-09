@@ -29,11 +29,11 @@ def build_optimizer():
     return optimizer
 
 
-def kullback_leibler_divergence(vects):
-    x, y = vects
-    x = ks.backend.clip(x, ks.backend.epsilon(), 1)
-    y = ks.backend.clip(y, ks.backend.epsilon(), 1)
-    return ks.backend.sum(x * ks.backend.log(x / y), axis=-1)
+def kullback_leibler_divergence(speakers):
+    p, q = speakers
+    p = p + ks.backend.epsilon()
+    q = q + ks.backend.epsilon()
+    return ks.backend.sum(p * ks.backend.log(p / q), axis=-1)
 
 
 def kullback_leibler_shape(shapes):
@@ -52,7 +52,7 @@ def kb_hinge_loss(y_true, y_pred):
 
 
 def kb_hinge_metric(y_true_targets, y_pred_KBL):
-    THRESHOLD = 0.5
+    THRESHOLD = 0.4
     isMatch = ks.backend.less(y_pred_KBL, THRESHOLD)
     isMatch = ks.backend.cast(isMatch, ks.backend.floatx())
 
@@ -87,20 +87,19 @@ def build_model(mode: str = 'train') -> ks.Model:
         return model
 
     num_units = topology['dense1_units']
-    model.add(ks.layers.Dense(num_units, name='dense_1'))
-    #model.add(ks.layers.advanced_activations.PReLU(init='zero', weights=None))
+    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_1'))
 
     model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
-    model.add(ks.layers.Dense(num_units, name='dense_2'))
-    #model.add(ks.layers.advanced_activations.PReLU(init='zero', weights=None))
+    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_2'))
 
     num_units = topology['dense3_units']
-    model.add(ks.layers.Dense(num_units, name='dense_3'))
-    #model.add(ks.layers.advanced_activations.PReLU(init='zero', weights=None))
+    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_3'))
 
-    model.add(ks.layers.Softmax(num_units, name='softmax'))
+    model.add(ks.layers.Dense(num_units, activation='softplus', name='output'))
+
+    #model.add(ks.layers.Softmax(num_units, name='softmax'))
 
     return model
 
