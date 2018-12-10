@@ -46,13 +46,14 @@ def kb_hinge_loss(y_true, y_pred):
     y_true: binary label, 1 = same speaker
     y_pred: output of siamese net i.e. kullback-leibler distribution
     """
-    MARGIN = 3.
+    MARGIN = 1.
     hinge = ks.backend.mean(ks.backend.softplus(MARGIN - y_pred), axis=-1)
     return y_true * y_pred + (1 - y_true) * hinge
 
 
 def kb_hinge_metric(y_true_targets, y_pred_KBL):
     THRESHOLD = 0.4
+    
     isMatch = ks.backend.less(y_pred_KBL, THRESHOLD)
     isMatch = ks.backend.cast(isMatch, ks.backend.floatx())
 
@@ -127,7 +128,7 @@ def build_siam():
     adam = build_optimizer()
     model.compile(loss=kb_hinge_loss,
                   optimizer=adam,
-                  metrics=[kb_hinge_metric])
+                  metrics=['accuracy', kb_hinge_metric])
     return model
 
 
@@ -162,7 +163,8 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
                               epochs=input_data['epochs'],
                               validation_data=val_data,
                               use_multiprocessing=True,
-                              callbacks=callbacks)
+                              callbacks=callbacks,
+                              workers=4)
 
     siamese_net.save_weights(weights_path, overwrite=True)
 

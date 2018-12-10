@@ -19,12 +19,12 @@ topology:
 
   dense2_units: 512 #6255 = 5 * C_s speakers
 
-  dense3_units: 256 #1251 = 1 * C_s speakers, for softmax equal
+  dense3_units: 1024 #1251 = 1 * C_s speakers, for softmax equal
 
 
   optimizer:
     type: adam
-    learning_rate: 0.01
+    learning_rate: 0.001
     beta_1: 0.9
     beta_2: 0.999
     epsilon: 1e-08
