@@ -57,6 +57,7 @@ def kb_hinge_loss(y_true, y_pred):
 
 def kb_hinge_metric(y_true_targets, y_pred_KBL):
     THRESHOLD = 0.4
+    THRESHOLD = ks.backend.cast(THRESHOLD, ks.backend.floatx())
 
     isMatch = ks.backend.less(y_pred_KBL, THRESHOLD)
     isMatch = ks.backend.cast(isMatch, ks.backend.floatx())
