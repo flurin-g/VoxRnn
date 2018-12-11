@@ -33,7 +33,9 @@ def kullback_leibler_divergence(speakers):
     p, q = speakers
     p = p + ks.backend.epsilon()
     q = q + ks.backend.epsilon()
-    return ks.backend.sum(p * ks.backend.log(p / q), axis=-1)
+    klpq = ks.backend.sum(p * ks.backend.log(p / q), axis=-1)
+    klqp = ks.backend.sum(q * ks.backend.log(q / p), axis=-1)
+    return klpq + klqp
 
 
 def kullback_leibler_shape(shapes):
@@ -46,14 +48,14 @@ def kb_hinge_loss(y_true, y_pred):
     y_true: binary label, 1 = same speaker
     y_pred: output of siamese net i.e. kullback-leibler distribution
     """
-    MARGIN = 1.
-    hinge = ks.backend.mean(ks.backend.softplus(MARGIN - y_pred), axis=-1)
+    MARGIN = 3.
+    hinge = ks.backend.mean(ks.backend.maximum(MARGIN - y_pred, 0.), axis=-1)
     return y_true * y_pred + (1 - y_true) * hinge
 
 
 def kb_hinge_metric(y_true_targets, y_pred_KBL):
     THRESHOLD = 0.4
-    
+
     isMatch = ks.backend.less(y_pred_KBL, THRESHOLD)
     isMatch = ks.backend.cast(isMatch, ks.backend.floatx())
 
@@ -88,19 +90,17 @@ def build_model(mode: str = 'train') -> ks.Model:
         return model
 
     num_units = topology['dense1_units']
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_1'))
+    model.add(ks.layers.Dense(num_units, name='dense_1'))
 
     model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_2'))
+    model.add(ks.layers.Dense(num_units, name='dense_2'))
 
     num_units = topology['dense3_units']
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_3'))
+    model.add(ks.layers.Dense(num_units, name='dense_3'))
 
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='output'))
-
-    #model.add(ks.layers.Softmax(num_units, name='softmax'))
+    model.add(ks.layers.Softmax(num_units, name='softmax'))
 
     return model
 
@@ -114,15 +114,9 @@ def build_siam():
     processed_a = base_network(input_a)
     processed_b = base_network(input_b)
 
-    distance1 = ks.layers.Lambda(kullback_leibler_divergence,
-                                 output_shape=kullback_leibler_shape,
-                                 name='distance1')([processed_a, processed_b])
-
-    distance2 = ks.layers.Lambda(kullback_leibler_divergence,
-                                 output_shape=kullback_leibler_shape,
-                                 name='distance2')([processed_b, processed_a])
-
-    distance = ks.layers.Add(name='distance_add')([distance1, distance2])
+    distance = ks.layers.Lambda(kullback_leibler_divergence,
+                                output_shape=kullback_leibler_shape,
+                                name='distance')([processed_a, processed_b])
 
     model = ks.Model(inputs=[input_a, input_b], outputs=distance)
     adam = build_optimizer()
