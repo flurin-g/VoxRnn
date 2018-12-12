@@ -5,7 +5,7 @@ import tensorflow as tf
 import keras as ks
 import numpy as np
 
-from data_generator import DataGenerator
+from data_generator import DataGenerator, PreTrainDataGenerator
 from vox_utils import get_all_sets
 from definitions import TRAIN_CONF, WEIGHTS_PATH, LOG_DIR
 
@@ -103,9 +103,10 @@ def build_model(mode: str = 'train') -> ks.Model:
     num_units = topology['dense3_units']
     model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_3'))
 
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='output'))
+    if mode == 'pre-train':
+        return model
 
-    # model.add(ks.layers.Softmax(num_units, name='softmax'))
+    model.add(ks.layers.Dense(num_units, activation='softplus', name='output'))
 
     return model
 
@@ -166,6 +167,67 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
                               workers=4)
 
     siamese_net.save_weights(weights_path, overwrite=True)
+
+
+def build_pre_train_model():
+    base_network = build_model('pre-train')
+
+    input_layer = ks.Input(shape=INPUT_DIMS, name='input')
+
+    processed = base_network(input_layer)
+
+    num_units = TRAIN_CONF['topology']['dense3_units']
+    softmax = ks.layers.Softmax(num_units, name='softmax')(processed)
+
+    model = ks.Model(inputs=input_layer, outputs=softmax)
+
+    adam = build_optimizer()
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=adam,
+                  metrics='accuracy')
+
+    model.summary()
+
+    return model
+
+
+def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_PATH):
+    model_dir = path.dirname(WEIGHTS_PATH)
+    checkpoint_pattern = path.join(model_dir, 'weights.{epoch:02d}-{val_loss:.2f}-' + str(time()) + '.hdf5')
+
+    callbacks = [
+        ks.callbacks.ProgbarLogger('steps'),
+        ks.callbacks.ModelCheckpoint(checkpoint_pattern),
+        ks.callbacks.TensorBoard(
+            LOG_DIR,
+            histogram_freq=1,
+            write_grads=True,
+            write_images=True,
+            write_graph=True
+        )
+    ]
+
+    input_data = TRAIN_CONF['input_data']
+    batch_size = input_data['batch_size']
+
+    train_set, dev_set, test_set = get_all_sets(create_spectrograms)
+
+    training_generator = PreTrainDataGenerator(train_set, INPUT_DIMS, batch_size)
+
+    # ToDo: extract method for dataGeneration from PreTrainDataGenerator
+    val_data = DataGenerator.generate_batch(dev_set, batch_size, INPUT_DIMS[0], INPUT_DIMS[1], np.random.RandomState(1))
+
+    pre_train_net = build_pre_train_model()
+    pre_train_net.summary()
+    pre_train_net.fit_generator(generator=training_generator,
+                                epochs=input_data['epochs'],
+                                validation_data=val_data,
+                                use_multiprocessing=True,
+                                callbacks=callbacks,
+                                workers=4)
+
+    pre_train_net.save_weights(weights_path, overwrite=True)
 
 
 def build_embedding_extractor_net():

@@ -5,6 +5,7 @@ input_data:
   batch_size: 64
   batch_shuffle: True
   epochs: 30
+  num_speakers: 1251
 
 topology:
   blstm1_units: 128

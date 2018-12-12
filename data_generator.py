@@ -1,11 +1,14 @@
 import pandas as pd
+import re
 
 import numpy as np
 import keras as ks
 from keras.utils import Sequence
 
-ROWS_PER_LOOP = 2
 
+from definitions import TRAIN_CONF
+NUM_SPEAKERS = TRAIN_CONF["num_speakers"]
+ROWS_PER_LOOP = 2
 NUM_OF_PAIRS = 100000
 
 
@@ -54,3 +57,30 @@ class DataGenerator(Sequence):
     def __getitem__(self, current_batch):
         'Generate one batch of data'
         return self.generate_batch(self.dataset, self.batch_size, self.dim[0], self.dim[1], self.rng)
+
+
+class PreTrainDataGenerator(Sequence):
+    def __init__(self, dataset: pd.DataFrame, dim: list, batch_size: int):
+        self.rng = np.random.RandomState(1)
+        self.dataset: pd.DataFrame = dataset
+        self.dim = dim
+        self.batch_size = batch_size
+
+    def __len__(self):
+        return len(self.dataset) // self.batch_size
+
+    def __getitem__(self, index):
+        start_idx = self.batch_size * index
+        X = list()
+        y = list()
+
+        for i in range(self.batch_size):
+            pos = self.dataset.iloc[start_idx + i]
+            X.append(np.load(pos.spectrogram_path))
+            speaker_id = re.sub('[^0-9]', '', pos.speaker_id)
+            y.append(speaker_id)
+
+        return np.array(X), ks.utils.to_categorical(y, num_classes=NUM_SPEAKERS)
+
+    def on_epoch_end(self):
+        self.dataset = self.dataset.sample(frac=1)
