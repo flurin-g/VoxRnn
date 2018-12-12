@@ -4,10 +4,10 @@ import re
 import numpy as np
 import keras as ks
 from keras.utils import Sequence
-
+from sklearn.preprocessing import LabelEncoder
 
 from definitions import TRAIN_CONF
-NUM_SPEAKERS = TRAIN_CONF["num_speakers"]
+NUM_SPEAKERS = TRAIN_CONF["input_data"]["num_speakers"]
 ROWS_PER_LOOP = 2
 NUM_OF_PAIRS = 100000
 
@@ -60,27 +60,32 @@ class DataGenerator(Sequence):
 
 
 class PreTrainDataGenerator(Sequence):
-    def __init__(self, dataset: pd.DataFrame, dim: list, batch_size: int):
-        self.rng = np.random.RandomState(1)
+    def __init__(self, dataset: pd.DataFrame, dim: list, batch_size: int, label_encoder: LabelEncoder, num_speakers: int):
         self.dataset: pd.DataFrame = dataset
         self.dim = dim
         self.batch_size = batch_size
+        self.num_speakers = num_speakers
+        self.label_encoder = label_encoder
+
+    def generate_batch(self, df: pd.DataFrame, batch_size: int, dim_0: int, dim_1: int, current_batch: int=0):
+        start_idx = batch_size * current_batch
+        X = np.empty((batch_size, dim_0, dim_1))
+        y = np.empty(batch_size, dtype=object)
+
+        for i in range(batch_size):
+            pos = df.iloc[start_idx + i]
+            X[i, ] = np.load(pos.spectrogram_path)
+            speaker_id = pos.speaker_id
+            y[i] = speaker_id
+
+        y_int_enc = self.label_encoder.transform(y)
+        return X, ks.utils.to_categorical(y_int_enc, self.num_speakers)
 
     def __len__(self):
         return len(self.dataset) // self.batch_size
 
-    def __getitem__(self, index):
-        start_idx = self.batch_size * index
-        X = list()
-        y = list()
-
-        for i in range(self.batch_size):
-            pos = self.dataset.iloc[start_idx + i]
-            X.append(np.load(pos.spectrogram_path))
-            speaker_id = re.sub('[^0-9]', '', pos.speaker_id)
-            y.append(speaker_id)
-
-        return np.array(X), ks.utils.to_categorical(y, num_classes=NUM_SPEAKERS)
+    def __getitem__(self, current_batch):
+        return self.generate_batch(self.dataset, self.batch_size, self.dim[0], self.dim[1], current_batch)
 
     def on_epoch_end(self):
         self.dataset = self.dataset.sample(frac=1)
