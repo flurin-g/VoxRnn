@@ -4,9 +4,10 @@ from os import path
 import tensorflow as tf
 import keras as ks
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 from data_generator import DataGenerator, PreTrainDataGenerator
-from vox_utils import get_all_sets
+from vox_utils import get_all_sets, load_encoder
 from definitions import TRAIN_CONF, WEIGHTS_PATH, LOG_DIR
 
 INPUT_DIMS = [TRAIN_CONF['input_data']['mel_spectrogram_x'],
@@ -155,7 +156,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
     training_generator = DataGenerator(train_set, INPUT_DIMS, batch_size)
 
-    val_data = DataGenerator.generate_batch(dev_set, batch_size, INPUT_DIMS[0], INPUT_DIMS[1], np.random.RandomState(1))
+    val_data = training_generator.generate_batch(dev_set, batch_size, INPUT_DIMS[0], INPUT_DIMS[1], np.random.RandomState(1))
 
     siamese_net = build_siam()
     siamese_net.summary()
@@ -169,15 +170,14 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
     siamese_net.save_weights(weights_path, overwrite=True)
 
 
-def build_pre_train_model():
+def build_pre_train_model(num_speakers: int):
     base_network = build_model('pre-train')
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
     processed = base_network(input_layer)
 
-    num_units = TRAIN_CONF['topology']['dense3_units']
-    softmax = ks.layers.Softmax(num_units, name='softmax')(processed)
+    softmax = ks.layers.Dense(units=num_speakers, activation='softmax', name='softmax')(processed)
 
     model = ks.Model(inputs=input_layer, outputs=softmax)
 
@@ -185,7 +185,7 @@ def build_pre_train_model():
 
     model.compile(loss='categorical_crossentropy',
                   optimizer=adam,
-                  metrics='accuracy')
+                  metrics=['accuracy'])
 
     model.summary()
 
@@ -211,14 +211,24 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
     input_data = TRAIN_CONF['input_data']
     batch_size = input_data['batch_size']
 
-    train_set, dev_set, test_set = get_all_sets(create_spectrograms)
+    train_set, _, _ = get_all_sets(create_spectrograms)
+    encoder = load_encoder()
+    num_speakers = len(encoder.classes_)
 
-    training_generator = PreTrainDataGenerator(train_set, INPUT_DIMS, batch_size)
+    train, test = train_test_split(train_set, test_size=0.2, random_state=0, stratify=train_set['speaker_id'])
 
-    # ToDo: extract method for dataGeneration from PreTrainDataGenerator
-    val_data = DataGenerator.generate_batch(dev_set, batch_size, INPUT_DIMS[0], INPUT_DIMS[1], np.random.RandomState(1))
+    training_generator = PreTrainDataGenerator(train,
+                                               INPUT_DIMS,
+                                               batch_size,
+                                               encoder,
+                                               num_speakers)
 
-    pre_train_net = build_pre_train_model()
+    val_data = training_generator.generate_batch(df=test,
+                                                 batch_size=test.shape[0],
+                                                 dim_0=INPUT_DIMS[0],
+                                                 dim_1=INPUT_DIMS[1])
+
+    pre_train_net = build_pre_train_model(num_speakers)
     pre_train_net.summary()
     pre_train_net.fit_generator(generator=training_generator,
                                 epochs=input_data['epochs'],
