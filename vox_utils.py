@@ -3,12 +3,27 @@ import os
 import librosa as lr
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
 from definitions import GLOBAL_CONF
 
 TRAIN = 1
 DEV = 2
 TEST = 3
+
+
+def save_encoder(dataset: pd.DataFrame):
+    unique_labels = dataset.speaker_id.unique()
+    label_encoder = LabelEncoder()
+    label_encoder.fit(unique_labels)
+
+    np.save('encoded_labels.npy', label_encoder.classes_)
+
+
+def load_encoder():
+    label_encoder = LabelEncoder()
+    label_encoder.classes_ = np.load('encoded_labels.npy')
+    return label_encoder
 
 
 def get_path(name: str) -> str:
@@ -27,7 +42,6 @@ def get_wav_path(split, path):
 
 def persist_spectrogram(mel_spectrogram: np.ndarray, wav_path: str):
     np.save(wav_path, mel_spectrogram, allow_pickle=False)
-
 
 
 def create_spectrogram(file_path: os.path, offset: float,
@@ -100,7 +114,9 @@ def get_dataset(build_spectrograms=False) -> pd.DataFrame:
 
                 persist_spectrogram(mel_spectrogram, spectrogram_path)
 
+    save_encoder(dataset)
     return dataset
+
 
 def get_train_set(build_spectrograms=False) -> pd.DataFrame:
     """
@@ -109,11 +125,13 @@ def get_train_set(build_spectrograms=False) -> pd.DataFrame:
 
     return get_all_sets(build_spectrograms)[0]
 
+
 def get_dev_set(build_spectrograms=False) -> pd.DataFrame:
     """
     :return: DataFrame containing dev data with metadata and filepaths
     """
     return get_all_sets(build_spectrograms)[1]
+
 
 def get_test_set(build_spectrograms=False) -> pd.DataFrame:
     """
@@ -121,6 +139,7 @@ def get_test_set(build_spectrograms=False) -> pd.DataFrame:
     """
 
     return get_all_sets(build_spectrograms)[2]
+
 
 def get_all_sets(build_spectrograms=False) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
     """
