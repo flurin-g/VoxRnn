@@ -3,27 +3,12 @@ import os
 import librosa as lr
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
 
 from definitions import GLOBAL_CONF
 
 TRAIN = 1
 DEV = 2
 TEST = 3
-
-
-def save_encoder(dataset: pd.DataFrame):
-    unique_labels = dataset.speaker_id.unique()
-    label_encoder = LabelEncoder()
-    label_encoder.fit(unique_labels)
-
-    np.save('encoded_labels.npy', label_encoder.classes_)
-
-
-def load_encoder():
-    label_encoder = LabelEncoder()
-    label_encoder.classes_ = np.load('encoded_labels.npy')
-    return label_encoder
 
 
 def get_path(name: str) -> str:
@@ -114,7 +99,6 @@ def get_dataset(build_spectrograms=False) -> pd.DataFrame:
 
                 persist_spectrogram(mel_spectrogram, spectrogram_path)
 
-    save_encoder(dataset)
     return dataset
 
 

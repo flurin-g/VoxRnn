@@ -5,9 +5,10 @@ import tensorflow as tf
 import keras as ks
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 
 from data_generator import DataGenerator, PreTrainDataGenerator
-from vox_utils import get_all_sets, load_encoder
+from vox_utils import get_all_sets, get_train_set
 from definitions import TRAIN_CONF, WEIGHTS_PATH, LOG_DIR
 
 INPUT_DIMS = [TRAIN_CONF['input_data']['mel_spectrogram_x'],
@@ -211,16 +212,19 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
     input_data = TRAIN_CONF['input_data']
     batch_size = input_data['batch_size']
 
-    train_set, _, _ = get_all_sets(create_spectrograms)
-    encoder = load_encoder()
-    num_speakers = len(encoder.classes_)
+    train_set = get_train_set(create_spectrograms)
+    unique_labels = train_set.speaker_id.unique()
+    label_encoder = LabelEncoder()
+    label_encoder.fit(unique_labels)
+
+    num_speakers = len(label_encoder.classes_)
 
     train, test = train_test_split(train_set, test_size=0.2, random_state=0, stratify=train_set['speaker_id'])
 
     training_generator = PreTrainDataGenerator(train,
                                                INPUT_DIMS,
                                                batch_size,
-                                               encoder,
+                                               label_encoder,
                                                num_speakers)
 
     val_data = training_generator.generate_batch(df=test,
@@ -234,8 +238,7 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
                                 epochs=input_data['epochs'],
                                 validation_data=val_data,
                                 use_multiprocessing=True,
-                                callbacks=callbacks,
-                                workers=4)
+                                callbacks=callbacks)
 
     pre_train_net.save_weights(weights_path, overwrite=True)
 

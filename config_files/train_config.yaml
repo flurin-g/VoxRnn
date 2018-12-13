@@ -2,10 +2,10 @@ input_data:
   sampling_rate: 16000
   mel_spectrogram_x: 40
   mel_spectrogram_y: 128
-  batch_size: 64
+  batch_size: 256
   batch_shuffle: True
-  epochs: 30
-  num_speakers: 1251
+  epochs: 500
+  num_speakers: &spk 1251
 
 topology:
   blstm1_units: 128
@@ -14,18 +14,18 @@ topology:
 
   blstm2_units: 128
 
-  dense1_units: 1024 #12510 = 10 * C_s speakers
+  dense1_units: 2502 #12510 = 10 * C_s speakers
 
   dropout2: 0.25
 
-  dense2_units: 512 #6255 = 5 * C_s speakers
+  dense2_units: 624 #6255 = 5 * C_s speakers
 
-  dense3_units: 1024 #1251 = 1 * C_s speakers, for softmax equal
+  dense3_units: 1251 #1251 = 1 * C_s speakers, for softmax equal
 
 
   optimizer:
     type: adam
-    learning_rate: 0.001
+    learning_rate: 0.0001
     beta_1: 0.9
     beta_2: 0.999
     epsilon: 1e-08
