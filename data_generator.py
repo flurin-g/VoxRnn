@@ -88,4 +88,4 @@ class PreTrainDataGenerator(Sequence):
         return self.generate_batch(self.dataset, self.batch_size, self.dim[0], self.dim[1], current_batch)
 
     def on_epoch_end(self):
-        self.dataset = self.dataset.sample(frac=1)
+        self.dataset.reindex(np.random.permutation(self.dataset.index))
