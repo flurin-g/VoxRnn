@@ -72,7 +72,7 @@ def kb_hinge_metric(y_true_targets, y_pred_KBL):
 
 def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
     if gpu:
-        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, unroll=True, name=name)
+        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
     else:
         return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, unroll=True, name=name)
 

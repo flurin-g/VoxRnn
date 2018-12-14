@@ -16,7 +16,7 @@ topology:
 
   dense1_units: 1024 #12510 = 10 * C_s speakers
 
-  dropout2: 0.25
+  dropout2: 0.5
 
   dense2_units: 512 #6255 = 5 * C_s speakers
 
