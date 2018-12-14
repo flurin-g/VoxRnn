@@ -199,7 +199,7 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
         ks.callbacks.ModelCheckpoint(checkpoint_pattern),
         ks.callbacks.TensorBoard(
             LOG_DIR,
-            histogram_freq=1,
+            histogram_freq=0,
             write_grads=True,
             write_images=True,
             write_graph=True
@@ -234,7 +234,8 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
     pre_train_net.fit_generator(generator=training_generator,
                                 epochs=input_data['epochs'],
                                 validation_data=val_data,
-                                use_multiprocessing=True)
+                                use_multiprocessing=True,
+                                callbacks=callbacks)
 
     pre_train_net.save_weights(weights_path, overwrite=True)
 
