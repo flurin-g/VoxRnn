@@ -5,7 +5,7 @@ input_data:
   batch_size: 256
   batch_shuffle: True
   epochs: 2000
-  num_speakers: &spk 1251
+  num_speakers: 1251
 
 topology:
   blstm1_units: 128
@@ -20,7 +20,7 @@ topology:
 
   dense2_units: 512 #6255 = 5 * C_s speakers
 
-  dense3_units: 1024 #1251 = 1 * C_s speakers, for softmax equal
+  dense3_units: 512 #1251 = 1 * C_s speakers, for softmax equal
 
 
   optimizer:
