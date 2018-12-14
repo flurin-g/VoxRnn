@@ -240,8 +240,7 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
     pre_train_net.fit_generator(generator=training_generator,
                                 epochs=input_data['epochs'],
                                 validation_data=val_data,
-                                use_multiprocessing=True,
-                                callbacks=callbacks)
+                                use_multiprocessing=True)
 
     pre_train_net.save_weights(weights_path, overwrite=True)
 
