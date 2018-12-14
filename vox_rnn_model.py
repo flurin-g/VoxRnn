@@ -177,7 +177,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
 
 def build_pre_train_model(num_speakers: int):
-    base_network = build_model('pre-train')
+    base_network = build_model()
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
