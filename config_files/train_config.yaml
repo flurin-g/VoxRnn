@@ -14,11 +14,11 @@ topology:
 
   blstm2_units: 128
 
-  dense1_units: 1024 #12510 = 10 * C_s speakers
+  dense1_units: 2502 #12510 = 10 * C_s speakers
 
-  dropout2: 0.5
+  dropout2: 0.25
 
-  dense2_units: 512 #6255 = 5 * C_s speakers
+  dense2_units: 1251 #6255 = 5 * C_s speakers
 
   dense3_units: 512 #1251 = 1 * C_s speakers, for softmax equal
 

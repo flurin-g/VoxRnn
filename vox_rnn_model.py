@@ -93,12 +93,12 @@ def build_model(mode: str = 'train') -> ks.Model:
         return model
 
     num_units = topology['dense1_units']
-    X = ks.layers.Dense(num_units, activation='softplus', name='dense_1')(X)
+    X = ks.layers.Dense(num_units, activation='relu', name='dense_1')(X)
 
     X = ks.layers.Dropout(topology['dropout2'])(X)
 
     num_units = topology['dense2_units']
-    X = ks.layers.Dense(num_units, activation='softplus', name='dense_2')(X)
+    X = ks.layers.Dense(num_units, activation='relu', name='dense_2')(X)
 
     num_units = topology['dense3_units']
     X = ks.layers.Dense(num_units, activation='softplus', name='dense_3')(X)
