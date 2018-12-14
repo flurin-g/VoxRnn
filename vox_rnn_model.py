@@ -155,7 +155,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
     training_generator = DataGenerator(train_set, INPUT_DIMS, batch_size)
 
-    val_data = training_generator.generate_batch(dev_set, batch_size, INPUT_DIMS[0], INPUT_DIMS[1], np.random.RandomState(1))
+    val_data = DataGenerator.generate_batch(dev_set, len(dev_set), INPUT_DIMS[0], INPUT_DIMS[1])
 
     siamese_net = build_siam()
     siamese_net.summary()
