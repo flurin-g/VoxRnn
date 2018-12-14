@@ -238,7 +238,7 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
                                                  dim_1=INPUT_DIMS[1])
 
     pre_train_net = build_pre_train_model(num_speakers)
-    pre_train_net.summary()
+
     pre_train_net.fit_generator(generator=training_generator,
                                 epochs=input_data['epochs'],
                                 validation_data=val_data,
