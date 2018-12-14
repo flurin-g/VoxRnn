@@ -70,11 +70,11 @@ def kb_hinge_metric(y_true_targets, y_pred_KBL):
     return ks.backend.mean(isMatch)
 
 
-def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
+def create_lstm(units: int, gpu: bool, name: str, dropout_val: float = 0., is_sequence: bool = True):
     if gpu:
-        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
+        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, dropout=dropout_val, unroll=True, name=name)
     else:
-        return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
+        return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, dropout=dropout_val, unroll=True, name=name)
 
 
 def build_model(mode: str = 'train') -> ks.Model:
@@ -82,42 +82,44 @@ def build_model(mode: str = 'train') -> ks.Model:
 
     is_gpu = tf.test.is_gpu_available(cuda_only=True)
 
-    model = ks.Sequential(name='base_network')
+    input_layer = ks.layers.Input(shape=INPUT_DIMS)
 
-    model.add(
-        ks.layers.Bidirectional(create_lstm(topology['blstm1_units'], is_gpu, name='blstm_1'), input_shape=INPUT_DIMS))
+    X = ks.layers.Bidirectional(create_lstm(topology['blstm1_units'],
+                                            is_gpu,
+                                            dropout_val=topology['dropout1'],
+                                            name='blstm_1'),
+                                input_shape=INPUT_DIMS)(input_layer)
 
-    model.add(ks.layers.Dropout(topology['dropout1']))
-
-    model.add(ks.layers.Bidirectional(create_lstm(topology['blstm2_units'], is_gpu, is_sequence=False, name='blstm_2')))
+    X = ks.layers.Bidirectional(create_lstm(topology['blstm2_units'],
+                                            is_gpu,
+                                            is_sequence=False,
+                                            name='blstm_2'))(X)
 
     if mode == 'extraction':
+        model = ks.models.Model(inputs=[input_layer], outputs=X)
         return model
 
     num_units = topology['dense1_units']
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_1'))
+    X = ks.layers.Dense(num_units, activation='softplus', name='dense_1')(X)
 
-    model.add(ks.layers.Dropout(topology['dropout2']))
+    X = ks.layers.Dropout(topology['dropout2'])(X)
 
     num_units = topology['dense2_units']
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_2'))
+    X = ks.layers.Dense(num_units, activation='softplus', name='dense_2')(X)
 
     num_units = topology['dense3_units']
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_3'))
+    X = ks.layers.Dense(num_units, activation='softplus', name='dense_3')(X)
 
-    if mode == 'pre-train':
-        return model
-
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='output'))
-
+    model = ks.models.Model(inputs=[input_layer], outputs=X)
     return model
 
 
 def build_siam():
-    base_network = build_model()
 
     input_a = ks.Input(shape=INPUT_DIMS, name='input_a')
     input_b = ks.Input(shape=INPUT_DIMS, name='input_b')
+
+    base_network = build_model()
 
     processed_a = base_network(input_a)
     processed_b = base_network(input_b)
@@ -126,8 +128,11 @@ def build_siam():
                                 output_shape=kullback_leibler_shape,
                                 name='distance1')([processed_a, processed_b])
 
-    model = ks.Model(inputs=[input_a, input_b], outputs=distance)
+    model = ks.Model(inputs=[input_a,
+                             input_b],
+                     outputs=distance)
     adam = build_optimizer()
+
     model.compile(loss=kb_hinge_loss,
                   optimizer=adam,
                   metrics=['accuracy', kb_hinge_metric])
