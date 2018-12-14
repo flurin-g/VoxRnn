@@ -169,8 +169,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
                               epochs=input_data['epochs'],
                               validation_data=val_data,
                               use_multiprocessing=True,
-                              callbacks=callbacks,
-                              workers=4)
+                              callbacks=callbacks)
 
     siamese_net.save_weights(weights_path, overwrite=True)
 
@@ -242,8 +241,7 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
                                 epochs=input_data['epochs'],
                                 validation_data=val_data,
                                 use_multiprocessing=True,
-                                callbacks=callbacks,
-                                workers=4)
+                                callbacks=callbacks)
 
     pre_train_net.save_weights(weights_path, overwrite=True)
 
