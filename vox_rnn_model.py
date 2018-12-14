@@ -84,15 +84,9 @@ def build_model(mode: str = 'train') -> ks.Model:
 
     input_layer = ks.layers.Input(shape=INPUT_DIMS)
 
-    X = ks.layers.Bidirectional(create_lstm(topology['blstm1_units'],
-                                            is_gpu,
-                                            name='blstm_1'),
-                                input_shape=INPUT_DIMS)(input_layer)
+    X = ks.layers.Bidirectional(create_lstm(topology['blstm1_units'],is_gpu,name='blstm_1'),input_shape=INPUT_DIMS)(input_layer)
 
-    X = ks.layers.Bidirectional(create_lstm(topology['blstm2_units'],
-                                            is_gpu,
-                                            is_sequence=False,
-                                            name='blstm_2'))(X)
+    X = ks.layers.Bidirectional(create_lstm(topology['blstm2_units'], is_gpu, is_sequence=False, name='blstm_2'))(X)
 
     if mode == 'extraction':
         model = ks.models.Model(inputs=[input_layer], outputs=X)

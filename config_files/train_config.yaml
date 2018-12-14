@@ -4,7 +4,7 @@ input_data:
   mel_spectrogram_y: 128
   batch_size: 256
   batch_shuffle: True
-  epochs: 4000
+  epochs: 50
   num_speakers: 1251
 
 topology:
