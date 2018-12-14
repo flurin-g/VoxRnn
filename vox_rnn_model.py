@@ -70,11 +70,11 @@ def kb_hinge_metric(y_true_targets, y_pred_KBL):
     return ks.backend.mean(isMatch)
 
 
-def create_lstm(units: int, gpu: bool, name: str, dropout_val: float = 0., is_sequence: bool = True):
+def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
     if gpu:
-        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, dropout=dropout_val, unroll=True, name=name)
+        return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, unroll=True, name=name)
     else:
-        return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, dropout=dropout_val, unroll=True, name=name)
+        return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, unroll=True, name=name)
 
 
 def build_model(mode: str = 'train') -> ks.Model:
@@ -86,7 +86,6 @@ def build_model(mode: str = 'train') -> ks.Model:
 
     X = ks.layers.Bidirectional(create_lstm(topology['blstm1_units'],
                                             is_gpu,
-                                            dropout_val=topology['dropout1'],
                                             name='blstm_1'),
                                 input_shape=INPUT_DIMS)(input_layer)
 
