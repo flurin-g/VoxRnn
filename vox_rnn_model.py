@@ -74,45 +74,50 @@ def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
     if gpu:
         return ks.layers.CuDNNLSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
     else:
-        return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, unroll=True, name=name)
+        return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
 
 
-def build_model(mode: str = 'train') -> ks.Model:
+def build_model(num_speakers: int, mode: str = 'train') -> ks.Model:
     topology = TRAIN_CONF['topology']
 
     is_gpu = tf.test.is_gpu_available(cuda_only=True)
 
-    input_layer = ks.layers.Input(shape=INPUT_DIMS)
+    model = ks.Sequential(name='base_network')
 
-    X = ks.layers.Bidirectional(create_lstm(topology['blstm1_units'],is_gpu,name='blstm_1'),input_shape=INPUT_DIMS)(input_layer)
+    model.add(
+        ks.layers.Bidirectional(create_lstm(topology['blstm1_units'], is_gpu, name='blstm_1'), input_shape=INPUT_DIMS))
 
-    X = ks.layers.Bidirectional(create_lstm(topology['blstm2_units'], is_gpu, is_sequence=False, name='blstm_2'))(X)
+    model.add(ks.layers.Dropout(topology['dropout1']))
 
-    if mode == 'extraction':
-        model = ks.models.Model(inputs=[input_layer], outputs=X)
+    model.add(ks.layers.Bidirectional(create_lstm(topology['blstm2_units'], is_gpu, is_sequence=False, name='blstm_2')))
+
+    if mode == 'extraction_orig':
         return model
 
     num_units = topology['dense1_units']
-    X = ks.layers.Dense(num_units, activation='relu', name='dense_1')(X)
+    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_1'))
 
-    X = ks.layers.Dropout(topology['dropout2'])(X)
+    model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
-    X = ks.layers.Dense(num_units, activation='relu', name='dense_2')(X)
+    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_2'))
 
-    num_units = topology['dense3_units']
-    X = ks.layers.Dense(num_units, activation='softplus', name='dense_3')(X)
+    if mode == 'pre-train':
+        model.add(ks.layers.Softmax(num_speakers, name='softmax'))
 
-    model = ks.models.Model(inputs=[input_layer], outputs=X)
+    else:
+        num_units = topology['dense3_units']
+        model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_3'))
+
     return model
 
 
-def build_siam():
+def build_siam(num_speakers: int):
+
+    base_network = build_model(num_speakers=num_speakers)
 
     input_a = ks.Input(shape=INPUT_DIMS, name='input_a')
     input_b = ks.Input(shape=INPUT_DIMS, name='input_b')
-
-    base_network = build_model()
 
     processed_a = base_network(input_a)
     processed_b = base_network(input_b)
@@ -121,14 +126,16 @@ def build_siam():
                                 output_shape=kullback_leibler_shape,
                                 name='distance1')([processed_a, processed_b])
 
-    model = ks.Model(inputs=[input_a,
-                             input_b],
-                     outputs=distance)
+    model = ks.Model(inputs=[input_a, input_b], outputs=distance)
     adam = build_optimizer()
-
     model.compile(loss=kb_hinge_loss,
                   optimizer=adam,
                   metrics=['accuracy', kb_hinge_metric])
+
+    model_dir = path.dirname(WEIGHTS_PATH)
+    pre_train_path = path.join(model_dir, 'pre-train-weights')
+    model.load_weights(pre_train_path, by_name=True)
+
     return model
 
 
@@ -157,7 +164,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
     val_data = DataGenerator.generate_batch(dev_set, len(dev_set), INPUT_DIMS[0], INPUT_DIMS[1])
 
-    siamese_net = build_siam()
+    siamese_net = build_siam(input_data['num_speakers'])
     siamese_net.summary()
     siamese_net.fit_generator(generator=training_generator,
                               epochs=input_data['epochs'],
@@ -169,15 +176,13 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
 
 def build_pre_train_model(num_speakers: int):
-    base_network = build_model()
+    base_network = build_model(num_speakers)
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
     processed = base_network(input_layer)
 
-    softmax = ks.layers.Dense(units=num_speakers, activation='softmax', name='softmax')(processed)
-
-    model = ks.Model(inputs=input_layer, outputs=softmax)
+    model = ks.Model(inputs=input_layer, outputs=processed)
 
     adam = build_optimizer()
 
@@ -192,7 +197,7 @@ def build_pre_train_model(num_speakers: int):
 
 def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_PATH):
     model_dir = path.dirname(WEIGHTS_PATH)
-    checkpoint_pattern = path.join(model_dir, 'weights.{epoch:02d}-{val_loss:.2f}-' + str(time()) + '.hdf5')
+    checkpoint_pattern = path.join(model_dir, 'pre-train-weights.{epoch:02d}-{val_loss:.2f}-' + str(time()) + '.hdf5')
 
     callbacks = [
         ks.callbacks.ProgbarLogger('steps'),
@@ -237,13 +242,16 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
                                 use_multiprocessing=True,
                                 callbacks=callbacks)
 
-    pre_train_net.save_weights(weights_path, overwrite=True)
+    model_dir = path.dirname(WEIGHTS_PATH)
+    pre_train_path = path.join(model_dir, 'pre-train-weights')
+
+    pre_train_net.save_weights(pre_train_path, overwrite=True)
 
 
-def build_embedding_extractor_net():
-    # ks.layers.core.K.set_learning_phase(0)
+def build_embedding_extractor_net(mode: str='extraction'):
+    input_data = TRAIN_CONF['input_data']
 
-    base_network = build_model('extraction')
+    base_network = build_model(input_data['num_speakers'], mode)
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
