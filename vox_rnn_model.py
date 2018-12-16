@@ -103,7 +103,8 @@ def build_model(num_speakers: int, mode: str = 'train') -> ks.Model:
     model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_2'))
 
     if mode == 'pre-train':
-        model.add(ks.layers.Softmax(num_speakers, name='softmax'))
+        model.add(ks.layers.Dense(num_speakers))
+        model.add(ks.layers.Activation('softmax'))
 
     else:
         num_units = topology['dense3_units']
