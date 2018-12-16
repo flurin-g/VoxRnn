@@ -176,7 +176,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
 
 def build_pre_train_model(num_speakers: int):
-    base_network = build_model(num_speakers)
+    base_network = build_model(num_speakers=num_speakers, mode='pre-train')
 
     input_layer = ks.Input(shape=INPUT_DIMS, name='input')
 
@@ -200,6 +200,13 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
     checkpoint_pattern = path.join(model_dir, 'pre-train-weights.{epoch:02d}-{val_loss:.2f}-' + str(time()) + '.hdf5')
 
     callbacks = [
+        ks.callbacks.EarlyStopping(monitor='val_loss',
+                                   min_delta=0.0001,
+                                   patience=2,
+                                   verbose=0,
+                                   mode='auto',
+                                   baseline=None,
+                                   restore_best_weights=True),
         ks.callbacks.ProgbarLogger('steps'),
         ks.callbacks.ModelCheckpoint(checkpoint_pattern),
         ks.callbacks.TensorBoard(
