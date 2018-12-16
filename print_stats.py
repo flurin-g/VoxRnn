@@ -30,7 +30,7 @@ def plot_spectrogram():
 
 
 def plot_model():
-    model = vox_rnn_model.build_model()
+    model = vox_rnn_model.build_model(1251)
     ks.utils.plot_model(model=model, to_file='base_network.png', show_shapes=True, show_layer_names=True)
 
 
