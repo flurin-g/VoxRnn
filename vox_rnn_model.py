@@ -135,7 +135,7 @@ def build_siam(num_speakers: int):
 
     model_dir = path.dirname(WEIGHTS_PATH)
     pre_train_path = path.join(model_dir, 'pre-train-weights')
-    model.load_weights(pre_train_path, by_name=True)
+    model.load_weights(pre_train_path, by_name=True, skip_mismatch=True)
 
     return model
 
