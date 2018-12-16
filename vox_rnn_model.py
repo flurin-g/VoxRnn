@@ -145,6 +145,13 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
     checkpoint_pattern = path.join(model_dir, 'weights.{epoch:02d}-{val_loss:.2f}-' + str(time()) + '.hdf5')
 
     callbacks = [
+        ks.callbacks.EarlyStopping(monitor='val_loss',
+                                   min_delta=0.0001,
+                                   patience=2,
+                                   verbose=0,
+                                   mode='auto',
+                                   baseline=None,
+                                   restore_best_weights=True),
         ks.callbacks.ProgbarLogger('steps'),
         ks.callbacks.ModelCheckpoint(checkpoint_pattern),
         ks.callbacks.TensorBoard(
