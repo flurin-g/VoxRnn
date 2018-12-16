@@ -3,6 +3,7 @@ import os
 import librosa as lr
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import GroupShuffleSplit
 
 from definitions import GLOBAL_CONF
 
@@ -136,3 +137,21 @@ def get_all_sets(build_spectrograms=False) -> (pd.DataFrame, pd.DataFrame, pd.Da
     test_set = df[df.split == TEST]
 
     return train_set, dev_set, test_set
+
+
+def get_all_sets_50m_50w(build_spectrograms):
+    # ToDo: original config is 0.2: shuffle_split = GroupShuffleSplit(n_splits=1, test_size=0.2)
+    shuffle_split = GroupShuffleSplit(n_splits=1, test_size=0.1)
+
+    df = get_dataset(build_spectrograms)
+    not_reynolds_ids = pd.read_csv(GLOBAL_CONF['files']['not_reynolds'],
+                                   header=None, names=['speaker_id'])
+
+    not_reynolds = df[df['speaker_id'].isin(not_reynolds_ids['speaker_id'])]
+
+    idx1, idx2 = next(shuffle_split.split(not_reynolds, groups=not_reynolds.speaker_id))
+    train_set, dev_set = df.iloc[idx1], df.iloc[idx2]
+    train_set.reset_index(drop=True)
+    dev_set.reset_index(drop=True)
+
+    return train_set, dev_set
