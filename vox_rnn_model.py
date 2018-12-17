@@ -50,12 +50,12 @@ def kb_hinge_loss(y_true, y_pred):
     y_true: binary label, 1 = same speaker
     y_pred: output of siamese net i.e. kullback-leibler distribution
     """
-
-    MARGIN = tf.constant(3.)
-    loss = tf.where(tf.equal(y_true, 1),
-                    y_pred,
-                    tf.maximum(tf.constant(0.), tf.subtract(MARGIN, y_pred)))
-
+    # MARGIN = 1.
+    # hinge = ks.backend.mean(ks.backend.softplus(MARGIN - y_pred), axis=-1)
+    MARGIN = 3.
+    y_true = ks.backend.squeeze(y_true, axis=-1)
+    hinge = ks.backend.mean(ks.backend.maximum(MARGIN - y_pred, 0.), axis=-1)
+    loss = ks.backend.switch(ks.backend.equal(1, y_true), y_pred, hinge)
     return loss
 
 
@@ -116,6 +116,7 @@ def build_model(num_speakers: int, mode: str = 'train') -> ks.Model:
 
 
 def build_siam(num_speakers: int):
+
     base_network = build_model(num_speakers=num_speakers)
 
     input_a = ks.Input(shape=INPUT_DIMS, name='input_a')
@@ -171,8 +172,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
     training_generator = DataGenerator(train_set, INPUT_DIMS, batch_size)
 
-    val_data = DataGenerator.generate_batch(dev_set, len(dev_set), INPUT_DIMS[0], INPUT_DIMS[1],
-                                            np.random.RandomState(1))
+    val_data = DataGenerator.generate_batch(dev_set, len(dev_set), INPUT_DIMS[0], INPUT_DIMS[1], np.random.RandomState(1))
 
     siamese_net = build_siam(input_data['num_speakers'])
     siamese_net.summary()
@@ -265,7 +265,7 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
     pre_train_net.save_weights(pre_train_path, overwrite=True)
 
 
-def build_embedding_extractor_net(mode: str = 'extraction'):
+def build_embedding_extractor_net(mode: str='extraction'):
     input_data = TRAIN_CONF['input_data']
 
     base_network = build_model(input_data['num_speakers'], mode)
