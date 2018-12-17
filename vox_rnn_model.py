@@ -53,8 +53,8 @@ def kb_hinge_loss(y_true, y_pred):
 
     MARGIN = tf.constant(3.)
     loss = tf.cond(tf.equal(y_true, tf.constant(1.)),
-                   tf.identity(y_pred),
-                   tf.maximum(tf.constant(0.), tf.subtract(MARGIN, y_pred)))
+                   lambda: tf.identity(y_pred),
+                   lambda: tf.maximum(tf.constant(0.), tf.subtract(MARGIN, y_pred)))
     return loss
 
 
