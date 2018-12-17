@@ -54,7 +54,7 @@ def kb_hinge_loss(y_true, y_pred):
     # hinge = ks.backend.mean(ks.backend.softplus(MARGIN - y_pred), axis=-1)
     MARGIN = 3.
     hinge = ks.backend.mean(ks.backend.maximum(MARGIN - y_pred, 0.), axis=-1)
-    loss = ks.backend.switch(ks.backend.equal(1, y_true), y_pred, hinge)
+    loss = ks.backend.switch(ks.backend.equal(1., y_true), y_pred, hinge)
     return loss
 
 
