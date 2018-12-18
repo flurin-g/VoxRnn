@@ -147,7 +147,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
     checkpoint_pattern = path.join(model_dir, 'weights.{epoch:02d}-{val_loss:.2f}-' + str(time()) + '.hdf5')
 
     callbacks = [
-        ks.callbacks.EarlyStopping(monitor='val_loss',
+        ks.callbacks.EarlyStopping(monitor='loss',
                                    min_delta=0.00001,
                                    patience=3,
                                    verbose=0,
