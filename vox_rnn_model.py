@@ -95,20 +95,23 @@ def build_model(num_speakers: int, mode: str = 'train') -> ks.Model:
         return model
 
     num_units = topology['dense1_units']
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_1'))
+    model.add(ks.layers.Dense(num_units, name='dense_1'))
 
     model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
-    model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_2'))
+    model.add(ks.layers.Dense(num_units, name='dense_2'))
+
+    num_units = topology['dense3_units']
+    model.add(ks.layers.Dense(num_units, name='dense_3'))
 
     if mode == 'pre-train':
-        model.add(ks.layers.Dense(units=num_speakers, name='softmax'))
+        model.add(ks.layers.Dense(units=num_speakers, name='softmax_layer'))
         model.add(ks.layers.Activation('softmax'))
 
     else:
         num_units = topology['dense3_units']
-        model.add(ks.layers.Dense(num_units, activation='softplus', name='dense_3'))
+        model.add(ks.layers.Dense(num_units, activation='softplus', name='embedding'))
 
     return model
 
@@ -145,8 +148,8 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
 
     callbacks = [
         ks.callbacks.EarlyStopping(monitor='val_loss',
-                                   min_delta=0.0001,
-                                   patience=2,
+                                   min_delta=0.00001,
+                                   patience=3,
                                    verbose=0,
                                    mode='auto',
                                    baseline=None,
@@ -155,10 +158,10 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
         ks.callbacks.ModelCheckpoint(checkpoint_pattern),
         ks.callbacks.TensorBoard(
             LOG_DIR,
-            histogram_freq=0,
+            histogram_freq=100,
             write_grads=True,
-            write_images=True,
-            write_graph=True
+            write_images=False,
+            write_graph=False
         )
     ]
 
