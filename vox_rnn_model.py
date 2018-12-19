@@ -155,7 +155,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
                                    baseline=None,
                                    restore_best_weights=True),
         ks.callbacks.ProgbarLogger('steps'),
-        ks.callbacks.ModelCheckpoint(checkpoint_pattern),
+        ks.callbacks.ModelCheckpoint(checkpoint_pattern, monitor='val_loss', save_best_only=True),
         ks.callbacks.TensorBoard(
             LOG_DIR,
             histogram_freq=100,
