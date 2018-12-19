@@ -213,19 +213,19 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
     callbacks = [
         ks.callbacks.EarlyStopping(monitor='val_loss',
                                    min_delta=0.0001,
-                                   patience=2,
+                                   patience=10,
                                    verbose=0,
                                    mode='auto',
                                    baseline=None,
                                    restore_best_weights=True),
         ks.callbacks.ProgbarLogger('steps'),
-        ks.callbacks.ModelCheckpoint(checkpoint_pattern),
+        ks.callbacks.ModelCheckpoint(checkpoint_pattern, monitor='val_acc', save_best_only=True),
         ks.callbacks.TensorBoard(
             LOG_DIR,
-            histogram_freq=0,
-            write_grads=True,
-            write_images=True,
-            write_graph=True
+            histogram_freq=100,
+            write_grads=False,
+            write_images=False,
+            write_graph=False
         )
     ]
 
