@@ -110,8 +110,8 @@ def build_model(num_speakers: int, mode: str = 'train') -> ks.Model:
         model.add(ks.layers.Activation('softmax'))
 
     else:
-        num_units = topology['dense3_units']
-        model.add(ks.layers.Dense(num_units, activation='softplus', name='embedding'))
+        num_units = topology['embedding_units']
+        model.add(ks.layers.Dense(num_units, activation='softmax', name='embedding'))
 
     return model
 

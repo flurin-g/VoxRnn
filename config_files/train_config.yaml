@@ -22,6 +22,8 @@ topology:
 
   dense3_units: 1024 #1251 = 1 * C_s speakers, for softmax equal
 
+  embedding_units: 512
+
 
   optimizer:
     type: adam
