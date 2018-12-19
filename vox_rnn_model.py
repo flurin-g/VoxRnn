@@ -179,7 +179,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
     val_data = DataGenerator.generate_batch(dev_set, len(dev_set), INPUT_DIMS[0], INPUT_DIMS[1],
                                             np.random.RandomState(1))
 
-    siamese_net = build_siam(input_data['num_speakers'])
+    siamese_net = build_siam()
     siamese_net.summary()
     siamese_net.fit_generator(generator=training_generator,
                               epochs=input_data['epochs'],
