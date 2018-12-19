@@ -149,7 +149,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
     callbacks = [
         ks.callbacks.EarlyStopping(monitor='val_loss',
                                    min_delta=0.00001,
-                                   patience=20,
+                                   patience=2,
                                    verbose=0,
                                    mode='auto',
                                    baseline=None,
