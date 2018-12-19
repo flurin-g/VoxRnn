@@ -50,8 +50,6 @@ def kb_hinge_loss(y_true, y_pred):
     y_true: binary label, 1 = same speaker
     y_pred: output of siamese net i.e. kullback-leibler distribution
     """
-    # MARGIN = 1.
-    # hinge = ks.backend.mean(ks.backend.softplus(MARGIN - y_pred), axis=-1)
     MARGIN = 3.
     return ks.backend.mean(y_true * y_pred +
                            (1 - y_true) * ks.backend.maximum(MARGIN - y_pred, 0.))
@@ -110,7 +108,7 @@ def build_model(num_speakers: int = 0, mode: str = 'train') -> ks.Model:
         model.add(ks.layers.Activation('softmax'))
 
     else:
-        num_units = topology['dense3_units']
+        num_units = topology['embedding_units']
         model.add(ks.layers.Dense(num_units, activation='softplus', name='embedding'))
 
     return model
