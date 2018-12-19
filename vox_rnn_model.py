@@ -77,7 +77,7 @@ def create_lstm(units: int, gpu: bool, name: str, is_sequence: bool = True):
         return ks.layers.LSTM(units, return_sequences=is_sequence, input_shape=INPUT_DIMS, name=name)
 
 
-def build_model(num_speakers: int, mode: str = 'train') -> ks.Model:
+def build_model(num_speakers: int = 0, mode: str = 'train') -> ks.Model:
     topology = TRAIN_CONF['topology']
 
     is_gpu = tf.test.is_gpu_available(cuda_only=True)
