@@ -95,15 +95,15 @@ def build_model(num_speakers: int, mode: str = 'train') -> ks.Model:
         return model
 
     num_units = topology['dense1_units']
-    model.add(ks.layers.Dense(num_units, name='dense_1'))
+    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_1'))
 
     model.add(ks.layers.Dropout(topology['dropout2']))
 
     num_units = topology['dense2_units']
-    model.add(ks.layers.Dense(num_units, name='dense_2'))
+    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_2'))
 
     num_units = topology['dense3_units']
-    model.add(ks.layers.Dense(num_units, name='dense_3'))
+    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_3'))
 
     if mode == 'pre-train':
         model.add(ks.layers.Dense(units=num_speakers, name='softmax_layer'))

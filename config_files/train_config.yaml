@@ -8,7 +8,7 @@ input_data:
   num_speakers: 1251
 
 topology:
-  blstm1_units: 256
+  blstm1_units: 128
 
   dropout1: 0.5
 
