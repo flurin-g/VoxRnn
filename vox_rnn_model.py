@@ -110,8 +110,8 @@ def build_model(num_speakers: int, mode: str = 'train') -> ks.Model:
         model.add(ks.layers.Activation('softmax'))
 
     else:
-        num_units = topology['embedding_units']
-        model.add(ks.layers.Dense(num_units, activation='softmax', name='embedding'))
+        num_units = topology['dense3_units']
+        model.add(ks.layers.Dense(num_units, activation='softplus', name='embedding'))
 
     return model
 
@@ -147,7 +147,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
     checkpoint_pattern = path.join(model_dir, 'weights.{epoch:02d}-{val_loss:.2f}-' + str(time()) + '.hdf5')
 
     callbacks = [
-        ks.callbacks.EarlyStopping(monitor='val_acc',
+        ks.callbacks.EarlyStopping(monitor='val_loss',
                                    min_delta=0.00001,
                                    patience=3,
                                    verbose=0,
@@ -158,8 +158,8 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
         ks.callbacks.ModelCheckpoint(checkpoint_pattern),
         ks.callbacks.TensorBoard(
             LOG_DIR,
-            histogram_freq=1,
-            write_grads=False,
+            histogram_freq=0,
+            write_grads=True,
             write_images=False,
             write_graph=False
         )
@@ -212,7 +212,7 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
 
     callbacks = [
         ks.callbacks.EarlyStopping(monitor='val_loss',
-                                   min_delta=0.00001,
+                                   min_delta=0.0001,
                                    patience=10,
                                    verbose=0,
                                    mode='auto',
@@ -222,10 +222,10 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
         ks.callbacks.ModelCheckpoint(checkpoint_pattern),
         ks.callbacks.TensorBoard(
             LOG_DIR,
-            histogram_freq=1,
-            write_grads=False,
-            write_images=False,
-            write_graph=False
+            histogram_freq=0,
+            write_grads=True,
+            write_images=True,
+            write_graph=True
         )
     ]
 
