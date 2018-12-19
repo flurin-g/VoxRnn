@@ -159,7 +159,7 @@ def train_model(create_spectrograms: bool = False, weights_path: str = WEIGHTS_P
         ks.callbacks.TensorBoard(
             LOG_DIR,
             histogram_freq=1,
-            write_grads=True,
+            write_grads=False,
             write_images=False,
             write_graph=False
         )
@@ -222,7 +222,7 @@ def pre_train_model(create_spectrograms: bool = False, weights_path: str = WEIGH
         ks.callbacks.ModelCheckpoint(checkpoint_pattern),
         ks.callbacks.TensorBoard(
             LOG_DIR,
-            histogram_freq=100,
+            histogram_freq=1,
             write_grads=False,
             write_images=False,
             write_graph=False
