@@ -102,17 +102,14 @@ def build_model(num_speakers: int = 0, mode: str = 'train') -> ks.Model:
     num_units = topology['dense2_units']
     model.add(ks.layers.Dense(num_units, activation='relu', name='dense_2'))
 
-    if mode == 'pre-train':
-        num_units = topology['dense3_units']
-        model.add(ks.layers.Dense(num_units, activation='relu', name='dense_3'))
+    num_units = topology['dense3_units']
+    model.add(ks.layers.Dense(num_units, activation='relu', name='dense_3'))
 
+    if mode == 'pre-train':
         model.add(ks.layers.Dense(units=num_speakers, name='softmax_layer'))
         model.add(ks.layers.Activation('softmax'))
 
     else:
-        num_units = topology['dense3_units']
-        model.add(ks.layers.Dense(num_units, activation='relu', name='dense_3_train'))
-
         num_units = topology['dense3_units']
         model.add(ks.layers.Dense(num_units, activation='softplus', name='embedding'))
 
@@ -140,8 +137,7 @@ def build_siam():
 
     model_dir = path.dirname(WEIGHTS_PATH)
     pre_train_path = path.join(model_dir, 'pre-train-weights')
-    model.load_weights(pre_train_path, by_name=True)
-    # model.load_weights(pre_train_path, by_name=True, skip_mismatch=True)
+    model.load_weights(pre_train_path, by_name=True, skip_mismatch=True)
 
     return model
 
